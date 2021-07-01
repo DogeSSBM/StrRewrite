@@ -1,26 +1,5 @@
 #include "Includes.h"
 
-
-/*
-BAAABBABAAAAB
-AAA -> B
-
-   1      23
-I:BAAABBABAAAAB
-|             12
-+---1: BBBBABAAAAB
-|   +---1: BBBBABBAB   // UNIQUE A
-|   +---2: BBBBABABB   // UNIQUE B
-|
-|        1
-+---2: BAAABBABBAB
-|   +---1: BBBBABBAB   // DUPE A
-|
-|        1
-+---3: BAAABBABABB
-    +---1: BBBBABABB   // DUPE B
-*/
-
 typedef struct Branch_s{
     char *str;
     uint numBranches;
@@ -59,6 +38,19 @@ void show(Branch *root, const uint level)
     }
 }
 
+Branch* search(Branch *root, const char *find){
+    if(root == NULL || root->str == NULL)
+        return NULL;
+    if(strcmp(root->str, find)==0)
+        return root;
+    Branch *ret = NULL;
+    for(uint i = 0; i < root->numBranches; i++){
+        if((ret = search(root->branch[i], find))!=NULL)
+            return ret;
+    }
+    return ret;
+}
+
 void grow(Branch *root, const char *find, const char *replace, const uint level, const uint m)
 {
     indent(4, level);
@@ -75,7 +67,6 @@ void grow(Branch *root, const char *find, const char *replace, const uint level,
     const int newlen = oldlen+(replen-finlen);
     if(newlen<0){
         printf("err: newlen < 0\n");
-        printf("%s: line %d\n", __FILE__, __LINE__);
         exit(-1);
     }
 
@@ -101,41 +92,7 @@ void grow(Branch *root, const char *find, const char *replace, const uint level,
         ob++;
         grow(root->branch[i], find, replace, level+1, i+1);
     }
-    // const char *n = root->str;
-    // for(uint i = 0; i < root->numBranches; i++){
-    //     char *newstr = calloc(newlen+1, sizeof(char));
-    //
-    //     // copy whole string
-    //     memcpy(newstr, root->str, newlen);
-    //
-    //     // find next occurence in basestr
-    //     n = strstr(n, find);
-    //     // find len up to occurence
-    //     const int olen = n-root->str;
-    //     // copy replacement into newstr offset by olen
-    //     memcpy(newstr+olen, replace, replen);
-    //
-    //     // find after replacement in newstr
-    //     char *after = newstr+olen+replen;
-    //     // find after occurence in basestr;
-    //     n+=finlen;
-    //     // copy after occurence basestr to after replacement newstr
-    //     memcpy(after, n, strlen(n));
-    //
-    //     root->branch[i] = malloc(sizeof(Branch));
-    //     root->branch[i]->str = newstr;
-    //     grow(root->branch[i], find, replace, level+1);
-    // }
 }
-
-// bool apply(Branch *root, const char *find, const char *replace)
-// {
-//     root->numBranches = numMatches(root->str, find);
-//     for(uint i = 0; i < root->numBranches; i++){
-//         if(root->branch[i] == NULL)
-//
-//     }
-// }
 
 int main(int argc, char const *argv[])
 {
