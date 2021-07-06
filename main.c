@@ -6,6 +6,7 @@ typedef struct Branch_s{
     struct Branch_s **branch;
 }Branch;
 
+// returns the number of times find occurs in str
 uint numMatches(const char *str, const char *find)
 {
     const char *c = str;
@@ -19,6 +20,18 @@ uint numMatches(const char *str, const char *find)
     return ret;
 }
 
+// returns a pointer to the start of the nth occurence of find in str
+const char* getMatchN(const char *str, const char *find, const uint n)
+{
+    const char *c = str;
+    for(uint i = 0; i < n; i++){
+        c = strstr(c, find);
+        c++;
+    }
+    return strstr(c, find);
+}
+
+// prints level indents of ilen spaces
 void indent(const uint ilen, const uint level)
 {
     for(uint i = 0; i < level; i++){
@@ -51,9 +64,37 @@ Branch* search(Branch *root, const char *find){
     return ret;
 }
 
+// returns the length of a string where replace has been substituted for one instance of find in str
+uint newStrLen(const char *str, const char *find, const char *replace)
+{
+    const int ret = strlen(str)+(strlen(replace)-strlen(find));
+    if(ret<0){
+        printf("err: replaceLen < 0\n");
+        printf("str: \"%s\", find: \"%s\", replace: \"%s\"\n", str, find, replace);
+        exit(-1);
+    }
+    return (uint)ret;
+}
+
+// constructs new string replacing the nth match of find in src with replace
+void replaceN(char *dest, const char *src, const char *find, const char *replace, const uint n)
+{
+    // get nth match
+    const char *srcMatch = getMatchN(src, find, n);
+
+    // get length up to the nth match
+    const uint beforeMatchLen = srcMatch-src;
+    strncat(dest, src, beforeMatchLen);
+    // printf("%u: %s\n",n,dest);
+    strcat(dest, replace);
+    strcat(dest, srcMatch+strlen(find));
+}
+
 void grow(Branch *root, const char *find, const char *replace, const uint level, const uint m)
 {
-    indent(4, level);
+    if(level > 3)
+        return;
+    indent(2, level);
     root->numBranches = numMatches(root->str, find);
     printf("%d: %s: %d\n", m, root->str, root->numBranches);
     if(root->numBranches == 0){
@@ -61,35 +102,14 @@ void grow(Branch *root, const char *find, const char *replace, const uint level,
         return;
     }
     root->branch = calloc(root->numBranches, sizeof(Branch*));
-    const int oldlen = strlen(root->str);
-    const int finlen = strlen(find);
-    const int replen = strlen(replace);
-    const int newlen = oldlen+(replen-finlen);
-    if(newlen<0){
-        printf("err: newlen < 0\n");
-        exit(-1);
-    }
+    const uint newlen = newStrLen(root->str, find, replace);
 
     for(uint i = 0; i < root->numBranches; i++){
-        char *newstr = calloc(newlen+1, sizeof(char));
-        char *ob = strstr(root->str, find);
-        for(uint j = 0; j < i; j++){
-            ob = strstr(ob+1, find);
-        }
-        int oblen = ob-root->str;
-        memcpy(newstr, root->str, oblen);
-        char *nb = newstr+oblen;
-        memcpy(nb, replace, replen);
-        char *na = nb+replen;
-        int nalen = newlen-(na - newstr)+1;
-        char *oa = ob+finlen;
-        int oalen = oldlen-(oa - root->str)+1;
-        if(oalen != nalen)
-            printf("Size mismatch\n");
-        memcpy(na, oa, nalen);
         root->branch[i] = malloc(sizeof(Branch));
-        root->branch[i]->str = newstr;
-        ob++;
+        root->branch[i]->str = calloc(newlen+1, sizeof(char));
+        replaceN(root->branch[i]->str, root->str, find, replace, i);
+        // indent(2, level);
+        // printf("%d: %s", i, root->branch[i]->str);
         grow(root->branch[i], find, replace, level+1, i+1);
     }
 }
