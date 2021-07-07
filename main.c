@@ -53,18 +53,17 @@ void show(Branch *root, const uint level)
     }
 }
 
-Branch* search(Branch *root, const char *find, const uint level){
-    if(root == NULL || root->str == NULL)
+Branch* search(Branch *branch, const char *find, const uint level, const uint m)
+{
+    if(branch == NULL || branch->str == NULL)
         return NULL;
-    if(root->str != find && strcmp(root->str, find)==0)
-        return root;
+    if(branch->str != find && strcmp(branch->str, find)==0)
+        return branch;
     Branch *ret = NULL;
-    for(uint i = 0; i < root->numBranches; i++){
-        if((ret = search(root->branch[i], find, level+1))!=NULL){
-            indent(4, level);
-            printf("Found previous match for %s:\n", find);
-            indent(4, level);
-            printf("%u:[%u]\n",level+1, i);
+    for(uint i = 0; i < branch->numBranches; i++){
+        if((ret = search(branch->branch[i], find, level+1))!=NULL){
+            // indent(4, level);
+            // printf("%d-%d: %s->%d-%d\n", find, level+1, i+1);
             return ret;
         }
     }
@@ -113,7 +112,7 @@ void grow(Branch *root, Branch *branch, const char *find, const char *replace, c
 {
     indent(4, level);
     branch->numBranches = numMatches(branch->str, find);
-    printf("%d: %s: %d\n", m, branch->str, branch->numBranches);
+    printf("%d-%d: %s :%d\n", level, m, branch->str, branch->numBranches);
     if(branch->numBranches == 0){
         branch->branch = NULL;
         return;
@@ -125,9 +124,10 @@ void grow(Branch *root, Branch *branch, const char *find, const char *replace, c
         branch->branch[i] = malloc(sizeof(Branch));
         branch->branch[i]->str = calloc(newlen+1, sizeof(char));
         replaceN(branch->branch[i]->str, branch->str, find, replace, i);
-        Branch *f = search(root, branch->branch[i]->str, 0);
+        Branch *f = search(root, branch->branch[i]->str, level);
         if(f != NULL){
-            printf("found\n");
+            indent(4, level);
+            printf("%d-%d: %s :%d\n")
             free(branch->branch[i]->str);
             free(branch->branch[i]);
             branch->branch[i] = f;
@@ -165,7 +165,7 @@ int main(int argc, char const *argv[])
     tree->str = malloc(len+1);
     memcpy(tree->str, argv[1], len+1);
 
-    grow(tree, tree, argv[2], argv[3], 0, 0);
+    grow(tree, tree, argv[2], argv[3], 0, 1);
     // show(tree, 0);
 
     return 0;
