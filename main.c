@@ -6,6 +6,12 @@ typedef struct Branch_s{
     struct Branch_s **branch;
 }Branch;
 
+typedef struct{
+    uint num;
+    char **find;
+    char **replace;
+}RuleSet;
+
 // returns the number of times find occurs in str
 uint numMatches(const char *str, const char *find)
 {
@@ -140,11 +146,11 @@ void grow(Branch *root, Branch *branch, const char *find, const char *replace, c
     }
 }
 
-void prune(Branch *branch)
+void destroy(Branch *branch)
 {
     for(uint i = 0; i < branch->numBranches; i++){
         if(branch->branch[i] != NULL)
-            prune(branch->branch[i]);
+            destroy(branch->branch[i]);
     }
     if(branch->str!=NULL)
         free(branch->str);
@@ -153,20 +159,67 @@ void prune(Branch *branch)
     free(branch);
 }
 
-int main(int argc, char const *argv[])
+void prune(Branch *branch)
 {
-    if(argc != 4){
-        printf("Usage:\n\t%s <inputstring> <find> <replace>\n", argv[0]);
+    for(uint i = 0; i < branch->numBranches; i++){
+        if(branch->branch[i] != NULL)
+            destroy(branch->branch[i]);
+        if(branch->branch!=NULL)
+            free(branch->branch);
+    }
+    branch->numBranches = 0;
+}
+
+RuleSet parseRules(const uint argc, char const *argv[])
+{
+    if(argc < 3){
+        printf("Usage:\n%s <rule 1> [rule 2] [rule ...] <input string>\n", argv[0]);
+        printf("\trules: find->replace \n");
         exit(-1);
     }
+    RuleSet rules = {
+        .num = argc-2,
+        .find = malloc(sizeof(char*)*(argc-2)),
+        .replace = malloc(sizeof(char*)*(argc-2))
+    };
+    for(uint i = 1; i < argc-1; i++){
+        const char *arrow = strstr(argv[i], "->");
+        if(arrow==NULL){
+            printf("Error. argv[%u]: \"%s\"\n Rules must be written as:\nfind->replace\n", i, argv[i]);
+            exit(-1);
+        }else if(strstr(arrow+1, "->")!=NULL){
+            printf("Error. argv[%u]: \"%s\"\n Rules must have only one ->\n", i, argv[i]);
+            exit(-1);
+        }
+        const uint len = arrow-argv[i];
+        rules.find[i-1] = malloc(len+1);
+        rules.replace[i-1] = malloc(strlen(arrow+2)+1);
+        strncpy(rules.find[i-1], argv[1], len);
+        strcpy(rules.replace[i-1], arrow+2);
+    }
+    return rules;
+}
 
+Branch* create(const char *str)
+{
     Branch *tree = malloc(sizeof(Branch));
-    const uint len = strlen(argv[1]);
+    const uint len = strlen(str);
     tree->str = malloc(len+1);
-    memcpy(tree->str, argv[1], len+1);
+    memcpy(tree->str, str, len);
+    return tree;
+}
 
-    grow(tree, tree, argv[2], argv[3], 0, 0);
-    // show(tree, 0);
+int main(int argc, char const *argv[])
+{
+    RuleSet rules = parseRules(argc, argv);
+    Branch *tree = create(argv[argc-1]);
+    for(uint i = 0; i < rules.num; i++){
+        printf("[%u]: %s -> %s\n", i, rules.find[i], rules.replace[i]);
+        grow(tree, tree, rules.find[i], rules.replace[i], 0, 0);
+        prune(tree);
+    }
+
+    destroy(tree);
 
     return 0;
 }
