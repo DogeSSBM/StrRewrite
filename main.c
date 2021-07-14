@@ -1,16 +1,16 @@
 #include "Includes.h"
 
-typedef struct Branch_s{
-    char *str;
-    uint numBranches;
-    struct Branch_s **branch;
-}Branch;
-
 typedef struct{
     uint num;
     char **find;
     char **replace;
 }RuleSet;
+
+typedef struct Branch_s{
+    char *str;
+    uint numBranches;
+    struct Branch_s **branch;
+}Branch;
 
 // returns the number of times find occurs in str
 uint numMatches(const char *str, const char *find)
@@ -130,18 +130,18 @@ void grow(Branch *root, Branch *branch, const char *find, const char *replace, c
         branch->branch[i] = malloc(sizeof(Branch));
         branch->branch[i]->str = calloc(newlen+1, sizeof(char));
         replaceN(branch->branch[i]->str, branch->str, find, replace, i);
-        // Branch *f = search(root, branch->branch[i]->str, level);
-        // if(f != NULL){
-        //     printf("%d: %s :%d\n", level, f->str, i);
-        //     free(branch->branch[i]->str);
-        //     free(branch->branch[i]);
-        //     branch->branch[i] = f;
-        //     return;
-        // }else{
+        Branch *f = search(root, branch->branch[i]->str, level);
+        if(f != NULL){
+            printf("%d: %s :%d\n", level, f->str, i);
+            free(branch->branch[i]->str);
+            free(branch->branch[i]);
+            branch->branch[i] = f;
+            return;
+        }else{
             grow(root, branch->branch[i], find, replace, level+1, i+1);
-        // }
-        // indent(2, level);
-        // printf("%d: %s", i, branch->branch[i]->str);
+        }
+        indent(2, level);
+        printf("%d: %s", i, branch->branch[i]->str);
     }
 }
 
@@ -181,8 +181,9 @@ RuleSet parseRules(const uint argc, char const *argv[])
         .find = malloc(sizeof(char*)*(argc-2)),
         .replace = malloc(sizeof(char*)*(argc-2))
     };
+    printf("%u rules -\n", rules.num);
     for(uint i = 1; i < argc-1; i++){
-        const char *arrow = strstr(argv[i], "->");
+        char *arrow = strstr(argv[i], "->");
         if(arrow==NULL){
             printf("Error. argv[%u]: \"%s\"\n Rules must be written as:\nfind->replace\n", i, argv[i]);
             exit(-1);
@@ -193,8 +194,11 @@ RuleSet parseRules(const uint argc, char const *argv[])
         const uint len = arrow-argv[i];
         rules.find[i-1] = malloc(len+1);
         rules.replace[i-1] = malloc(strlen(arrow+2)+1);
-        strncpy(rules.find[i-1], argv[1], len);
+        strncpy(rules.find[i-1], argv[i], len);
         strcpy(rules.replace[i-1], arrow+2);
+        printf("Rule %u -\n", i);
+        printf("Find: %s\n", rules.find[i-1]);
+        printf("Replace: %s\n", rules.replace[i-1]);
     }
     return rules;
 }
