@@ -12,6 +12,11 @@ typedef struct Branch_s{
     struct Branch_s **branch;
 }Branch;
 
+typedef struct Link_s{
+    Branch *branch;
+    struct Link_s *next;
+}Link;
+
 // returns the number of times find occurs in str
 uint numMatches(const char *str, const char *find)
 {
@@ -131,17 +136,17 @@ void grow(Branch *root, Branch *branch, const char *find, const char *replace, c
         branch->branch[i] = malloc(sizeof(Branch));
         branch->branch[i]->str = calloc(newlen+1, sizeof(char));
         replaceN(branch->branch[i]->str, branch->str, find, replace, i);
-        Branch *f = search(root, branch->branch[i]->str);
-        if(f != NULL){
-            // indent(4, level);
-            //printf("%d->%d: %s\n", i, level, f->str);
-            free(branch->branch[i]->str);
-            free(branch->branch[i]);
-            branch->branch[i] = f;
-            return;
-        }else{
+        // Branch *f = search(root, branch->branch[i]->str);
+        // if(f != NULL){
+        //     // indent(4, level);
+        //     //printf("%d->%d: %s\n", i, level, f->str);
+        //     free(branch->branch[i]->str);
+        //     free(branch->branch[i]);
+        //     branch->branch[i] = f;
+        //     return;
+        // }else{
             grow(root, branch->branch[i], find, replace, level+1, i+1);
-        }
+        // }
         // indent(4, level);
         // printf("%d: %s\n", i, branch->branch[i]->str);
     }
@@ -201,14 +206,6 @@ RuleSet parseRules(const uint argc, char const *argv[])
     return rules;
 }
 
-void printRules(const RuleSet rules)
-{
-    printf("%u Rules -\n", rules.num);
-    for(uint i = 0; i < rules.num; i++){
-        printf("rule[%u]: %s -> %s\n", i+1, rules.find[i], rules.replace[i]);
-    }
-}
-
 Branch* create(const char *str)
 {
     Branch *tree = malloc(sizeof(Branch));
@@ -218,20 +215,76 @@ Branch* create(const char *str)
     return tree;
 }
 
+bool inList(Link *list, Branch *branch)
+{
+    Link *current = list;
+    while(current!=NULL){
+        if(current->branch == branch)
+            return true;
+        current = current->next;
+    }
+    return false;
+}
+
+Link* squish(Link *head, Link *tail, Branch *branch)
+{
+    static uint count = 0;
+    while(tail->next!=NULL)
+        tail = tail->next;
+    for(uint i = 0; i < branch->numBranches; i++){
+        if(!inList(head, branch->branch[i])){
+            printf("count: %u\n", count++);
+            tail->next = malloc(sizeof(Link));
+            tail = tail->next;
+            tail->branch = branch->branch[i];
+            tail->next = NULL;
+        }else{
+            printf("%s already in list\n", branch->branch[i]->str);
+        }
+    }
+    return tail;
+}
+
+// Link* flatten(Branch *root)
+// {
+//     Link *list = malloc(sizeof(Link));
+//     list->next = NULL;
+//     list->branch = root;
+//     Link *current = list;
+//     for(uint i = 0; i < root->numBranches; i++){
+//         // current = squish(list, current, root->branch[i]);
+//         current = flatten(root->branch[i]);
+//     }
+//     return list;
+// }
+
+void freeList(Link *list)
+{
+    uint i = 0;
+    while(list != NULL){
+        printf("Freeing link %u\n", i++);
+        Link *next = list->next;
+        free(list->branch->str);
+        free(list->branch->branch);
+        free(list->branch);
+        free(list);
+        list = next;
+    }
+}
+
 int main(int argc, char const *argv[])
 {
     RuleSet rules = parseRules(argc, argv);
-    printRules(rules);
-    Branch *tree = create(argv[argc-1]);
     for(uint i = 0; i < rules.num; i++){
+        Branch *tree = create(argv[argc-1]);
+        printf("----------------------------------\n");
+        printf("rules[%3u] %s -> %s\n", i, rules.find[i], rules.replace[i]);
+        printf("----------------------------------\n");
         grow(tree, tree, rules.find[i], rules.replace[i], 0, 0);
-        prune(tree);
+        // Link *list = flatten(tree);
+        // freeList(list);
+        // destroy(tree);
     }
-
-    destroy(tree);
-
-    grow(tree, tree, argv[2], argv[3], 0, 1);
-    // show(tree, 0);
 
     return 0;
 }
