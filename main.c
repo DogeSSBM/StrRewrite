@@ -120,8 +120,39 @@ Branch* merdge(Branch *branch, Branch *target)
     return NULL;
 }
 
-void grow(Branch *root, Branch *branch, const char *find, const char *replace, const uint level, const uint m)
+// bool inList(Link *list, Branch *branch)
+// {
+//     Link *current = list;
+//     while(current!=NULL){
+//         if(current->branch == branch)
+//             return true;
+//         current = current->next;
+//     }
+//     return false;
+// }
+
+Link* growList(Link *list, Branch *branch)
 {
+    if(list == NULL){
+        list = calloc(1, sizeof(Link));
+        list->branch = branch;
+        return list;
+    }
+    Link *current = list;
+    while(current->next != NULL){
+        if(current->branch == branch)
+            return list;
+        current = current->next;
+    }
+    current->next = calloc(1, sizeof(Link));
+    current = current->next;
+    current->branch = branch;
+    return list;
+}
+
+void grow(Branch *root, Branch *branch, const char *find, const char *replace, const uint level, const uint m, Link *list)
+{
+    growList(list, branch);
     indent(4, level);
     branch->numBranches = numMatches(branch->str, find);
     printf("%d-%d: %s :%d\n", level, m, branch->str, branch->numBranches);
@@ -136,19 +167,32 @@ void grow(Branch *root, Branch *branch, const char *find, const char *replace, c
         branch->branch[i] = malloc(sizeof(Branch));
         branch->branch[i]->str = calloc(newlen+1, sizeof(char));
         replaceN(branch->branch[i]->str, branch->str, find, replace, i);
-        // Branch *f = search(root, branch->branch[i]->str);
-        // if(f != NULL){
-        //     // indent(4, level);
-        //     //printf("%d->%d: %s\n", i, level, f->str);
-        //     free(branch->branch[i]->str);
-        //     free(branch->branch[i]);
-        //     branch->branch[i] = f;
-        //     return;
-        // }else{
-            grow(root, branch->branch[i], find, replace, level+1, i+1);
-        // }
+        Branch *f = search(root, branch->branch[i]->str);
+        if(f != NULL){
+            // indent(4, level);
+            //printf("%d->%d: %s\n", i, level, f->str);
+            free(branch->branch[i]->str);
+            free(branch->branch[i]);
+            branch->branch[i] = f;
+            return;
+        }else{
+            //growList(list, branch->branch[i]);
+            grow(root, branch->branch[i], find, replace, level+1, i+1, list);
+        }
         // indent(4, level);
         // printf("%d: %s\n", i, branch->branch[i]->str);
+    }
+}
+
+void freeList(Link *list)
+{
+    while(list!=NULL){
+        Link *next = list->next;
+        free(list->branch->str);
+        free(list->branch->branch);
+        free(list->branch);
+        free(list);
+        list = next;
     }
 }
 
@@ -206,6 +250,16 @@ RuleSet parseRules(const uint argc, char const *argv[])
     return rules;
 }
 
+void freeRules(RuleSet rules)
+{
+    for(uint i = 0; i < rules.num; i++){
+        free(rules.find[i]);
+        free(rules.replace[i]);
+    }
+    free(rules.find);
+    free(rules.replace);
+}
+
 Branch* create(const char *str)
 {
     Branch *tree = malloc(sizeof(Branch));
@@ -213,63 +267,6 @@ Branch* create(const char *str)
     tree->str = malloc(len+1);
     memcpy(tree->str, str, len);
     return tree;
-}
-
-bool inList(Link *list, Branch *branch)
-{
-    Link *current = list;
-    while(current!=NULL){
-        if(current->branch == branch)
-            return true;
-        current = current->next;
-    }
-    return false;
-}
-
-Link* squish(Link *head, Link *tail, Branch *branch)
-{
-    static uint count = 0;
-    while(tail->next!=NULL)
-        tail = tail->next;
-    for(uint i = 0; i < branch->numBranches; i++){
-        if(!inList(head, branch->branch[i])){
-            printf("count: %u\n", count++);
-            tail->next = malloc(sizeof(Link));
-            tail = tail->next;
-            tail->branch = branch->branch[i];
-            tail->next = NULL;
-        }else{
-            printf("%s already in list\n", branch->branch[i]->str);
-        }
-    }
-    return tail;
-}
-
-// Link* flatten(Branch *root)
-// {
-//     Link *list = malloc(sizeof(Link));
-//     list->next = NULL;
-//     list->branch = root;
-//     Link *current = list;
-//     for(uint i = 0; i < root->numBranches; i++){
-//         // current = squish(list, current, root->branch[i]);
-//         current = flatten(root->branch[i]);
-//     }
-//     return list;
-// }
-
-void freeList(Link *list)
-{
-    uint i = 0;
-    while(list != NULL){
-        printf("Freeing link %u\n", i++);
-        Link *next = list->next;
-        free(list->branch->str);
-        free(list->branch->branch);
-        free(list->branch);
-        free(list);
-        list = next;
-    }
 }
 
 int main(int argc, char const *argv[])
@@ -280,11 +277,11 @@ int main(int argc, char const *argv[])
         printf("----------------------------------\n");
         printf("rules[%3u] %s -> %s\n", i, rules.find[i], rules.replace[i]);
         printf("----------------------------------\n");
-        grow(tree, tree, rules.find[i], rules.replace[i], 0, 0);
-        // Link *list = flatten(tree);
-        // freeList(list);
-        // destroy(tree);
+        Link *list = growList(NULL, tree);
+        grow(tree, tree, rules.find[i], rules.replace[i], 0, 0, list);
+        freeList(list);
     }
+    freeRules(rules);
 
     return 0;
 }
