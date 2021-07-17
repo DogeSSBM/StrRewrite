@@ -139,6 +139,8 @@ Link* growList(Link *list, Branch *branch)
         return list;
     }
     Link *current = list;
+    if(current->branch == branch)
+        return list;
     while(current->next != NULL){
         if(current->branch == branch)
             return list;
