@@ -13,9 +13,16 @@ typedef struct Branch_s{
 }Branch;
 
 typedef struct Link_s{
+    uint level;
+    uint numParents;
     Branch *branch;
     struct Link_s *next;
 }Link;
+
+typedef struct Tree_s{
+    Branch *root;
+    Link *list;
+}Tree;
 
 // returns the number of times find occurs in str
 uint numMatches(const char *str, const char *find)
@@ -54,11 +61,8 @@ void indent(const uint ilen, const uint level)
 
 void show(Branch *root, const uint level)
 {
-    indent(4, level);
-    printf("%u %s:\n", level, root->str);
     for(uint i = 0; i < root->numBranches; i++){
-        indent(4, level);
-        printf("%u:\n", i);
+
         if(root->branch[i] != NULL)
             show(root->branch[i], level+1);
     }
@@ -120,41 +124,37 @@ Branch* merdge(Branch *branch, Branch *target)
     return NULL;
 }
 
-// bool inList(Link *list, Branch *branch)
-// {
-//     Link *current = list;
-//     while(current!=NULL){
-//         if(current->branch == branch)
-//             return true;
-//         current = current->next;
-//     }
-//     return false;
-// }
-
-Link* growList(Link *list, Branch *branch)
+Link* growList(Link *list, Branch *branch, const uint level)
 {
     if(list == NULL){
         list = calloc(1, sizeof(Link));
         list->branch = branch;
+        list->numParents = 0;
+        list->level = 0;
         return list;
     }
     Link *current = list;
-    if(current->branch == branch)
+    if(current->branch == branch){
         return list;
+    }
     while(current->next != NULL){
-        if(current->branch == branch)
+        if(current->branch == branch){
+            current->numParents++;
             return list;
+        }
         current = current->next;
     }
     current->next = calloc(1, sizeof(Link));
     current = current->next;
     current->branch = branch;
+    current->numParents = 1;
+    current->level = level;
     return list;
 }
 
 void grow(Branch *root, Branch *branch, const char *find, const char *replace, const uint level, const uint m, Link *list)
 {
-    growList(list, branch);
+    growList(list, branch, level);
     indent(4, level);
     branch->numBranches = numMatches(branch->str, find);
     printf("%d-%d: %s :%d\n", level, m, branch->str, branch->numBranches);
@@ -171,18 +171,15 @@ void grow(Branch *root, Branch *branch, const char *find, const char *replace, c
         replaceN(branch->branch[i]->str, branch->str, find, replace, i);
         Branch *f = search(root, branch->branch[i]->str);
         if(f != NULL){
-            // indent(4, level);
-            //printf("%d->%d: %s\n", i, level, f->str);
             free(branch->branch[i]->str);
             free(branch->branch[i]);
             branch->branch[i] = f;
+            indent(4, level+1);
+            printf("<~~d %s :%d\n", branch->str, f->numBranches);
             return;
         }else{
-            //growList(list, branch->branch[i]);
             grow(root, branch->branch[i], find, replace, level+1, i+1, list);
         }
-        // indent(4, level);
-        // printf("%d: %s\n", i, branch->branch[i]->str);
     }
 }
 
@@ -196,30 +193,6 @@ void freeList(Link *list)
         free(list);
         list = next;
     }
-}
-
-void destroy(Branch *branch)
-{
-    for(uint i = 0; i < branch->numBranches; i++){
-        if(branch->branch[i] != NULL)
-            destroy(branch->branch[i]);
-    }
-    if(branch->str!=NULL)
-        free(branch->str);
-    if(branch->branch!=NULL)
-        free(branch->branch);
-    free(branch);
-}
-
-void prune(Branch *branch)
-{
-    for(uint i = 0; i < branch->numBranches; i++){
-        if(branch->branch[i] != NULL)
-            destroy(branch->branch[i]);
-        if(branch->branch!=NULL)
-            free(branch->branch);
-    }
-    branch->numBranches = 0;
 }
 
 RuleSet parseRules(const uint argc, char const *argv[])
@@ -271,17 +244,24 @@ Branch* create(const char *str)
     return tree;
 }
 
+Tree rewrite(const char *str, const char *find, const char *replace)
+{
+    Tree tree = {0};
+    tree.root = create(str);
+    tree.list = growList(NULL, tree.root, 0);
+    grow(tree.root, tree.root, find, replace, 0, 0, tree.list);
+    return tree;
+}
+
 int main(int argc, char const *argv[])
 {
     RuleSet rules = parseRules(argc, argv);
     for(uint i = 0; i < rules.num; i++){
-        Branch *tree = create(argv[argc-1]);
         printf("----------------------------------\n");
-        printf("rules[%3u] %s -> %s\n", i, rules.find[i], rules.replace[i]);
+        printf("rules[%3u]{\"%s\"->\"%s\"}:\n", i, rules.find[i], rules.replace[i]);
         printf("----------------------------------\n");
-        Link *list = growList(NULL, tree);
-        grow(tree, tree, rules.find[i], rules.replace[i], 0, 0, list);
-        freeList(list);
+        Tree tree = rewrite(argv[argc-1], rules.find[i], rules.replace[i]);
+        freeList(tree.list);
     }
     freeRules(rules);
 
