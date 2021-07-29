@@ -1,0 +1,76 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+File	Types.h	/^typedef FILE                File;$/;"	t
+I16MAX	Types.h	25;"	d
+I16MIN	Types.h	24;"	d
+I32MAX	Types.h	27;"	d
+I32MIN	Types.h	26;"	d
+I64MAX	Types.h	29;"	d
+I64MIN	Types.h	28;"	d
+I8MAX	Types.h	23;"	d
+I8MIN	Types.h	22;"	d
+Node	main.c	/^}Node;$/;"	t	typeref:struct:Node_s	file:
+NodeList	main.c	/^}NodeList;$/;"	t	typeref:struct:NodeList_s	file:
+NodeList_s	main.c	/^typedef struct NodeList_s{$/;"	s	file:
+Node_s	main.c	/^typedef struct Node_s{$/;"	s	file:
+PI	Types.h	35;"	d
+Rule	main.c	/^}Rule;$/;"	t	typeref:struct:__anon1	file:
+RuleSet	main.c	/^}RuleSet;$/;"	t	typeref:struct:__anon2	file:
+Ticks	Types.h	/^typedef unsigned int        Ticks;$/;"	t
+Time	Types.h	/^typedef time_t              Time;$/;"	t
+U16MAX	Types.h	32;"	d
+U32MAX	Types.h	33;"	d
+U64MAX	Types.h	34;"	d
+U8MAX	Types.h	31;"	d
+child	main.c	/^    struct Node_s **child;$/;"	m	struct:Node_s	typeref:struct:Node_s::Node_s	file:
+children_of_c	pickle.py	/^        children_of_c = find_children(c)$/;"	v
+createChildren	main.c	/^void createChildren(Node *n, const RuleSet rs, NodeList *list)$/;"	f
+createOccurances	main.c	/^void createOccurances(Node *n, const RuleSet rs)$/;"	f
+find	main.c	/^    char *find;$/;"	m	struct:__anon1	file:
+find_children	pickle.py	/^def find_children(inp):$/;"	f
+flatten	main.c	/^NodeList* flatten(NodeList *list, Node *n)$/;"	f
+freeList	main.c	/^void freeList(NodeList *list)$/;"	f
+freeRule	main.c	/^void freeRule(const Rule rule)$/;"	f
+freeRuleSet	main.c	/^void freeRuleSet(RuleSet rs)$/;"	f
+getMatchN	main.c	/^const char* getMatchN(const char *str, const char *find, const uint n)$/;"	f
+i16	Types.h	/^typedef int16_t             i16;$/;"	t
+i32	Types.h	/^typedef int32_t             i32;$/;"	t
+i64	Types.h	/^typedef int64_t             i64;$/;"	t
+i8	Types.h	/^typedef int8_t              i8;$/;"	t
+inList	main.c	/^bool inList(NodeList *list, Node *n)$/;"	f
+inp	pickle.py	/^inp = 'AABAAA'$/;"	v
+lint	Types.h	/^typedef long int            lint;$/;"	t
+list_all_children	pickle.py	/^    list_all_children = [c for val in world.values() for c in val['children']]$/;"	v
+list_all_children	pickle.py	/^    list_all_children = [inp]$/;"	v
+main	main.c	/^int main(int argc, char const *argv[])$/;"	f
+newStrLen	main.c	/^uint newStrLen(const char *str, const char *find, const char *replace)$/;"	f
+next	main.c	/^    struct NodeList_s *next;$/;"	m	struct:NodeList_s	typeref:struct:NodeList_s::NodeList_s	file:
+node	main.c	/^    Node *node;$/;"	m	struct:NodeList_s	file:
+numMatches	main.c	/^uint numMatches(const char *str, const char *find)$/;"	f
+numRules	main.c	/^    uint numRules;$/;"	m	struct:__anon2	file:
+parseRule	main.c	/^Rule parseRule(const char *str)$/;"	f
+parseRuleSet	main.c	/^RuleSet parseRuleSet(const uint argc, char const *argv[])$/;"	f
+printRule	main.c	/^void printRule(const Rule rule)$/;"	f
+printRuleSet	main.c	/^void printRuleSet(const RuleSet rs)$/;"	f
+replace	main.c	/^    char *replace;$/;"	m	struct:__anon1	file:
+replaceN	main.c	/^char* replaceN(char *str, const char *find, const char *replace, const uint n)$/;"	f
+rewrite	main.c	/^NodeList* rewrite(char *str, const RuleSet rs, NodeList *list)$/;"	f
+rule	main.c	/^    Rule *rule;$/;"	m	struct:__anon2	file:
+ruleOccurances	main.c	/^    uint *ruleOccurances;   \/\/ number of times each rule occurs in str$/;"	m	struct:Node_s	file:
+searchStrList	main.c	/^Node* searchStrList(NodeList *list, const char *str)$/;"	f
+str	main.c	/^    char *str;$/;"	m	struct:Node_s	file:
+totalOccurances	main.c	/^    uint totalOccurances;$/;"	m	struct:Node_s	file:
+u16	Types.h	/^typedef uint16_t            u16;$/;"	t
+u32	Types.h	/^typedef uint32_t            u32;$/;"	t
+u64	Types.h	/^typedef uint64_t            u64;$/;"	t
+u8	Types.h	/^typedef uint8_t             u8;$/;"	t
+uchar	Types.h	/^typedef unsigned char       uchar;$/;"	t
+uint	Types.h	/^typedef unsigned int        uint;$/;"	t
+ul	Types.h	/^typedef unsigned long       ul;$/;"	t
+ull	Types.h	/^typedef unsigned long long  ull;$/;"	t
+world	pickle.py	/^world = {}$/;"	v
+world_prev	pickle.py	/^world_prev = world.copy()$/;"	v

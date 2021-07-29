@@ -1,28 +1,94 @@
 #include "Includes.h"
 
+typedef struct Node_s{
+    char *str;
+    uint *ruleOccurances;   // number of times each rule occurs in str
+    uint totalOccurances;
+    struct Node_s **child;
+}Node;
+
+typedef struct NodeList_s{
+    Node *node;
+    struct NodeList_s *next;
+}NodeList;
+
 typedef struct{
-    uint num;
-    char **find;
-    char **replace;
+    char *find;
+    char *replace;
+}Rule;
+
+typedef struct{
+    uint numRules;
+    Rule *rule;
 }RuleSet;
 
-typedef struct Branch_s{
-    char *str;
-    uint numBranches;
-    struct Branch_s **branch;
-}Branch;
+void freeRule(const Rule rule)
+{
+    if(rule.find != NULL)
+        free(rule.find);
+    if(rule.replace != NULL)
+        free(rule.replace);
+}
 
-typedef struct Link_s{
-    uint level;
-    uint numParents;
-    Branch *branch;
-    struct Link_s *next;
-}Link;
+void freeRuleSet(RuleSet rs)
+{
+    if(rs.numRules == 0)
+        return;
+    for(uint i = 0; i < rs.numRules; i++)
+        freeRule(rs.rule[i]);
+    free(rs.rule);
+}
 
-typedef struct Tree_s{
-    Branch *root;
-    Link *list;
-}Tree;
+void printRule(const Rule rule)
+{
+    printf("{\"%s\"->\"%s\"}\n", rule.find, rule.replace);
+}
+
+void printRuleSet(const RuleSet rs)
+{
+    printf("----------------------------------\n");
+    for(uint i = 0; i < rs.numRules; i++){
+        printf("rule[%u] = ", i);
+        printRule(rs.rule[i]);
+    }
+    printf("----------------------------------\n");
+}
+
+Rule parseRule(const char *str)
+{
+    Rule rule = {0};
+    char *arrow = strstr(str, "->");
+    if(arrow==NULL){
+        printf("Error parsing \"%s\".\nRules must be written \"find->replace\n", str);
+        exit(-1);
+    }else if(strstr(arrow+1, "->")!=NULL){
+        printf("Error parsing \"%s\".\nRules must have only one \"->\"\n", str);
+        exit(-1);
+    }
+    const uint flen = arrow-str;
+    rule.find = malloc(flen+1);
+    rule.replace = malloc(strlen(arrow+2)+1);
+    strncpy(rule.find, str, flen);
+    strcpy(rule.replace, arrow+2);
+    return rule;
+}
+
+RuleSet parseRuleSet(const uint argc, char const *argv[])
+{
+    if(argc < 3){
+        printf("Usage:\n%s <rule 1> [rule 2] [rule ...] <input string>\n", argv[0]);
+        printf("\trules: find->replace \n");
+        exit(-1);
+    }
+    RuleSet rs = {
+        .numRules = argc-2,
+        .rule = malloc(sizeof(Rule)*(argc-2)),
+    };
+
+    for(uint i = 0; i < argc-2; i++)
+        rs.rule[i] = parseRule(argv[i+1]);
+    return rs;
+}
 
 // returns the number of times find occurs in str
 uint numMatches(const char *str, const char *find)
@@ -43,47 +109,13 @@ const char* getMatchN(const char *str, const char *find, const uint n)
 {
     const char *c = str;
     for(uint i = 0; i < n; i++){
-        c = strstr(c, find);
+        if((c = strstr(c, find))==NULL){
+            printf("Could not get match number %u/%u of %s in %s!", i, n, find, str);
+            exit(-1);
+        }
         c++;
     }
     return strstr(c, find);
-}
-
-// prints level indents of ilen spaces
-void indent(const uint ilen, const uint level)
-{
-    for(uint i = 0; i < level; i++){
-        for(uint j = 0; j < ilen; j++){
-            printf(" ");
-        }
-    }
-}
-
-void show(Branch *root, const uint level)
-{
-    for(uint i = 0; i < root->numBranches; i++){
-
-        if(root->branch[i] != NULL)
-            show(root->branch[i], level+1);
-    }
-}
-
-// returns first branch with a matching string at a different address or NULL if none found
-Branch* search(Branch *branch, const char *find)
-{
-    if(branch == NULL || branch->str == NULL)
-        return NULL;
-    if(branch->str != find && strcmp(branch->str, find)==0)
-        return branch;
-    Branch *ret = NULL;
-    for(uint i = 0; i < branch->numBranches; i++){
-        if((ret = search(branch->branch[i], find))!=NULL){
-            // indent(4, level);
-            // printf("%d-%d: %s->%d-%d\n", find, level+1, i+1);
-            return ret;
-        }
-    }
-    return ret;
 }
 
 // returns the length of a string where replace has been substituted for one instance of find in str
@@ -98,172 +130,113 @@ uint newStrLen(const char *str, const char *find, const char *replace)
     return (uint)ret;
 }
 
-// constructs new string replacing the nth match of find in src with replace
-void replaceN(char *dest, const char *src, const char *find, const char *replace, const uint n)
+// constructs a new string substituting replace for the Nth occourance of find in str
+char* replaceN(char *str, const char *find, const char *replace, const uint n)
 {
+    char *ret = calloc(1, newStrLen(str, find, replace));
+
     // get nth match
-    const char *srcMatch = getMatchN(src, find, n);
+    const char *matchPos = getMatchN(str, find, n);
 
     // get length up to the nth match
-    const uint beforeMatchLen = srcMatch-src;
-    strncat(dest, src, beforeMatchLen);
-    // printf("%u: %s\n",n,dest);
-    strcat(dest, replace);
-    strcat(dest, srcMatch+strlen(find));
+    const uint beforeMatchLen = matchPos-str;
+    strncat(ret, str, beforeMatchLen);
+    strcat(ret, replace);
+    strcat(ret, matchPos+strlen(find));
+    return ret;
 }
 
-Branch* merdge(Branch *branch, Branch *target)
+bool inList(NodeList *list, Node *n)
 {
-    if(strcmp(branch->str, target->str) == 0 && branch != target)
-        return branch;
-    Branch *ret = NULL;
-    for(uint i = 0; i < branch->numBranches; i++){
-        if((ret = merdge(branch->branch[i], target))!=NULL)
-            return ret;
+    while(list != NULL){
+        if(list->node == n)
+            return true;
+        list = list->next;
+    }
+    return false;
+}
+
+Node* searchStrList(NodeList *list, const char *str)
+{
+    while(list != NULL){
+        if(list->node->str == str)
+            return list->node;
+        list = list->next;
     }
     return NULL;
 }
 
-Link* growList(Link *list, Branch *branch, const uint level)
+NodeList* flatten(NodeList *list, Node *n)
 {
-    if(list == NULL){
-        list = calloc(1, sizeof(Link));
-        list->branch = branch;
-        list->numParents = 0;
-        list->level = 0;
-        return list;
-    }
-    Link *current = list;
-    if(current->branch == branch){
-        return list;
-    }
-    while(current->next != NULL){
-        if(current->branch == branch){
-            current->numParents++;
-            return list;
+    for(uint i = 0; i < n->totalOccurances; i++){
+        if(!inList(list, n->child[i])){
+            NodeList *head = calloc(1, sizeof(NodeList));
+            head->node = n;
+            head->next = list;
+            list = head;
         }
-        current = current->next;
     }
-    current->next = calloc(1, sizeof(Link));
-    current = current->next;
-    current->branch = branch;
-    current->numParents = 1;
-    current->level = level;
     return list;
 }
 
-void grow(Branch *root, Branch *branch, const char *find, const char *replace, const uint level, const uint m, Link *list)
+void createOccurances(Node *n, const RuleSet rs)
 {
-    growList(list, branch, level);
-    indent(4, level);
-    branch->numBranches = numMatches(branch->str, find);
-    printf("%d-%d: %s :%d\n", level, m, branch->str, branch->numBranches);
-    if(branch->numBranches == 0){
-        branch->branch = NULL;
-        return;
+    n->ruleOccurances = calloc(rs.numRules, sizeof(uint));
+    for(uint i = 0; i < rs.numRules; i++){
+        n->ruleOccurances[i] = numMatches(n->str, rs.rule[i].find);
+        n->totalOccurances += n->ruleOccurances[i];
     }
-    branch->branch = calloc(branch->numBranches, sizeof(Branch*));
-    const uint newlen = newStrLen(branch->str, find, replace);
+}
 
-    for(uint i = 0; i < branch->numBranches; i++){
-        branch->branch[i] = malloc(sizeof(Branch));
-        branch->branch[i]->str = calloc(newlen+1, sizeof(char));
-        replaceN(branch->branch[i]->str, branch->str, find, replace, i);
-        Branch *f = search(root, branch->branch[i]->str);
-        if(f != NULL){
-            free(branch->branch[i]->str);
-            free(branch->branch[i]);
-            branch->branch[i] = f;
-            indent(4, level+1);
-            printf("<~~d %s :%d\n", branch->str, f->numBranches);
-            return;
-        }else{
-            grow(root, branch->branch[i], find, replace, level+1, i+1, list);
+void createChildren(Node *n, const RuleSet rs, NodeList *list)
+{
+    n->child = calloc(n->totalOccurances, sizeof(Node*));
+    uint current = 0;
+    for(uint i = 0; i < rs.numRules; i++){
+        for(uint j = 0; j < n->ruleOccurances[i]; j++){
+            char *newstr = replaceN(n->str, rs.rule[i].find, rs.rule[i].replace, j);
+            if((n->child[current+j] = searchStrList(list, newstr))==NULL){
+                n->child[current+j] = calloc(1, sizeof(Node));
+                n->str = newstr;
+                list = flatten(list, n->child[current+j]);
+            }else{
+                free(newstr);
+            }
         }
+        current+=n->ruleOccurances[i];
     }
-}
-
-void freeList(Link *list)
-{
-    while(list!=NULL){
-        Link *next = list->next;
-        free(list->branch->str);
-        free(list->branch->branch);
-        free(list->branch);
-        free(list);
-        list = next;
-    }
-}
-
-RuleSet parseRules(const uint argc, char const *argv[])
-{
-    if(argc < 3){
-        printf("Usage:\n%s <rule 1> [rule 2] [rule ...] <input string>\n", argv[0]);
-        printf("\trules: find->replace \n");
+    if(current != n->totalOccurances){
+        printf("Total child nodes generated != n->totalOccurances\n");
         exit(-1);
     }
-    RuleSet rules = {
-        .num = argc-2,
-        .find = malloc(sizeof(char*)*(argc-2)),
-        .replace = malloc(sizeof(char*)*(argc-2))
-    };
-    for(uint i = 1; i < argc-1; i++){
-        char *arrow = strstr(argv[i], "->");
-        if(arrow==NULL){
-            printf("Error. argv[%u]: \"%s\"\n Rules must be written as:\nfind->replace\n", i, argv[i]);
-            exit(-1);
-        }else if(strstr(arrow+1, "->")!=NULL){
-            printf("Error. argv[%u]: \"%s\"\n Rules must have only one ->\n", i, argv[i]);
-            exit(-1);
-        }
-        const uint len = arrow-argv[i];
-        rules.find[i-1] = malloc(len+1);
-        rules.replace[i-1] = malloc(strlen(arrow+2)+1);
-        strncpy(rules.find[i-1], argv[i], len);
-        strcpy(rules.replace[i-1], arrow+2);
+}
+
+void freeList(NodeList *list)
+{
+    while(list != NULL){
+        NodeList *newhead = list->next;
+        free(list->node->str);
+        free(list->node->ruleOccurances);
+        free(list->node->child);
+        free(list);
+        list = newhead;
     }
-    return rules;
 }
 
-void freeRules(RuleSet rules)
+NodeList* rewrite(char *str, const RuleSet rs, NodeList *list)
 {
-    for(uint i = 0; i < rules.num; i++){
-        free(rules.find[i]);
-        free(rules.replace[i]);
-    }
-    free(rules.find);
-    free(rules.replace);
-}
-
-Branch* create(const char *str)
-{
-    Branch *tree = malloc(sizeof(Branch));
-    const uint len = strlen(str);
-    tree->str = malloc(len+1);
-    memcpy(tree->str, str, len);
-    return tree;
-}
-
-Tree rewrite(const char *str, const char *find, const char *replace)
-{
-    Tree tree = {0};
-    tree.root = create(str);
-    tree.list = growList(NULL, tree.root, 0);
-    grow(tree.root, tree.root, find, replace, 0, 0, tree.list);
-    return tree;
+    Node *n =
+    createOccurances(n, rs);
+    createChildren(n, rs);
+    return
 }
 
 int main(int argc, char const *argv[])
 {
-    RuleSet rules = parseRules(argc, argv);
-    for(uint i = 0; i < rules.num; i++){
-        printf("----------------------------------\n");
-        printf("rules[%3u]{\"%s\"->\"%s\"}:\n", i, rules.find[i], rules.replace[i]);
-        printf("----------------------------------\n");
-        Tree tree = rewrite(argv[argc-1], rules.find[i], rules.replace[i]);
-        freeList(tree.list);
-    }
-    freeRules(rules);
+    RuleSet rs = parseRuleSet(argc, argv);
+    printRuleSet(rs);
+    rewrite(argv[argc-1], rs, )
+    freeRuleSet(rs);
 
     return 0;
 }
