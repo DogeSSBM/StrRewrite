@@ -73,7 +73,7 @@ Rule parseRule(const char *str)
     return rule;
 }
 
-RuleSet parseRuleSet(const uint argc, char const *argv[])
+RuleSet parseRuleSet(const uint argc, char **argv)
 {
     if(argc < 3){
         printf("Usage:\n%s <rule 1> [rule 2] [rule ...] <input string>\n", argv[0]);
@@ -188,8 +188,11 @@ void createOccurances(Node *n, const RuleSet rs)
     }
 }
 
-void createChildren(Node *n, const RuleSet rs, NodeList *list)
+NodeList* rewrite(Node *n, const RuleSet rs, NodeList *list)
 {
+    static uint count = 0;
+    printf("str: %s, count: %u\n", n->str, count++);
+    createOccurances(n, rs);
     n->child = calloc(n->totalOccurances, sizeof(Node*));
     uint current = 0;
     for(uint i = 0; i < rs.numRules; i++){
@@ -197,8 +200,12 @@ void createChildren(Node *n, const RuleSet rs, NodeList *list)
             char *newstr = replaceN(n->str, rs.rule[i].find, rs.rule[i].replace, j);
             if((n->child[current+j] = searchStrList(list, newstr))==NULL){
                 n->child[current+j] = calloc(1, sizeof(Node));
-                n->str = newstr;
-                list = flatten(list, n->child[current+j]);
+                n->child[current+j]->str = newstr;
+                NodeList *head = calloc(1, sizeof(NodeList));
+                head->next = list;
+                head->node = n->child[current+j];
+                // list = flatten(list, n->child[current+j]);
+                list = rewrite(n->child[current+j], rs, head);
             }else{
                 free(newstr);
             }
@@ -209,6 +216,7 @@ void createChildren(Node *n, const RuleSet rs, NodeList *list)
         printf("Total child nodes generated != n->totalOccurances\n");
         exit(-1);
     }
+    return list;
 }
 
 void freeList(NodeList *list)
@@ -218,24 +226,21 @@ void freeList(NodeList *list)
         free(list->node->str);
         free(list->node->ruleOccurances);
         free(list->node->child);
+        free(list->node);
         free(list);
         list = newhead;
     }
 }
 
-NodeList* rewrite(char *str, const RuleSet rs, NodeList *list)
-{
-    Node *n =
-    createOccurances(n, rs);
-    createChildren(n, rs);
-    return
-}
-
-int main(int argc, char const *argv[])
+int main(int argc, char **argv)
 {
     RuleSet rs = parseRuleSet(argc, argv);
     printRuleSet(rs);
-    rewrite(argv[argc-1], rs, )
+    NodeList *list = calloc(1, sizeof(NodeList));
+    list->node = calloc(1, sizeof(Node));
+    list->node->str = strdup(argv[argc-1]);
+    list = rewrite(list->node, rs, list);
+    freeList(list);
     freeRuleSet(rs);
 
     return 0;
