@@ -78,6 +78,8 @@ RuleSet parseRuleSet(const uint argc, char **argv)
     if(argc < 3){
         printf("Usage:\n%s <rule 1> [rule 2] [rule ...] <input string>\n", argv[0]);
         printf("\trules: find->replace \n");
+        printf("\nExample:\n");
+        printf("%s \"AA->B\" \"BA->CA\" \"AC->B\" \"CB->AB\" ACABBACABCB", argv[0]);
         exit(-1);
     }
     RuleSet rs = {
@@ -146,37 +148,14 @@ char* replaceN(char *str, const char *find, const char *replace, const uint n)
     return ret;
 }
 
-bool inList(NodeList *list, Node *n)
-{
-    while(list != NULL){
-        if(list->node == n)
-            return true;
-        list = list->next;
-    }
-    return false;
-}
-
 Node* searchStrList(NodeList *list, const char *str)
 {
     while(list != NULL){
-        if(list->node->str == str)
+        if(strcmp(list->node->str, str) == 0)
             return list->node;
         list = list->next;
     }
     return NULL;
-}
-
-NodeList* flatten(NodeList *list, Node *n)
-{
-    for(uint i = 0; i < n->totalOccurances; i++){
-        if(!inList(list, n->child[i])){
-            NodeList *head = calloc(1, sizeof(NodeList));
-            head->node = n;
-            head->next = list;
-            list = head;
-        }
-    }
-    return list;
 }
 
 void createOccurances(Node *n, const RuleSet rs)
@@ -204,7 +183,6 @@ NodeList* rewrite(Node *n, const RuleSet rs, NodeList *list)
                 NodeList *head = calloc(1, sizeof(NodeList));
                 head->next = list;
                 head->node = n->child[current+j];
-                // list = flatten(list, n->child[current+j]);
                 list = rewrite(n->child[current+j], rs, head);
             }else{
                 free(newstr);

@@ -31,7 +31,6 @@ children_of_c	pickle.py	/^        children_of_c = find_children(c)$/;"	v
 createOccurances	main.c	/^void createOccurances(Node *n, const RuleSet rs)$/;"	f
 find	main.c	/^    char *find;$/;"	m	struct:__anon1	file:
 find_children	pickle.py	/^def find_children(inp):$/;"	f
-flatten	main.c	/^NodeList* flatten(NodeList *list, Node *n)$/;"	f
 freeList	main.c	/^void freeList(NodeList *list)$/;"	f
 freeRule	main.c	/^void freeRule(const Rule rule)$/;"	f
 freeRuleSet	main.c	/^void freeRuleSet(RuleSet rs)$/;"	f
@@ -40,7 +39,6 @@ i16	Types.h	/^typedef int16_t             i16;$/;"	t
 i32	Types.h	/^typedef int32_t             i32;$/;"	t
 i64	Types.h	/^typedef int64_t             i64;$/;"	t
 i8	Types.h	/^typedef int8_t              i8;$/;"	t
-inList	main.c	/^bool inList(NodeList *list, Node *n)$/;"	f
 inp	pickle.py	/^inp = 'AABAAA'$/;"	v
 lint	Types.h	/^typedef long int            lint;$/;"	t
 list_all_children	pickle.py	/^    list_all_children = [c for val in world.values() for c in val['children']]$/;"	v
