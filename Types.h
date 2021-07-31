@@ -1,7 +1,5 @@
 #pragma once
 typedef FILE                File;
-typedef time_t              Time;
-typedef unsigned int        Ticks;
 
 typedef long int            lint;
 typedef unsigned char       uchar;

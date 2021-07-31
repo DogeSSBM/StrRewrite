@@ -73,13 +73,23 @@ Rule parseRule(const char *str)
     return rule;
 }
 
+void printExamples(char *prog)
+{
+    const char *example[] = {
+        "\"AA->B\" \"BA->CA\" \"AC->B\" \"CB->AB\" ACABBACABCB",
+        "\"0->1\" \"1->2\" \"2->3\" 000",
+        "\"01->10\" \"11->00\" 10101011"
+    };
+    for(uint i = 0; i < 3; i++)
+        printf("\nExample %u:\n%s %s\n", i+1, prog, example[i]);
+}
+
 RuleSet parseRuleSet(const uint argc, char **argv)
 {
     if(argc < 3){
         printf("Usage:\n%s <rule 1> [rule 2] [rule ...] <input string>\n", argv[0]);
         printf("\trules: find->replace \n");
-        printf("\nExample:\n");
-        printf("%s \"AA->B\" \"BA->CA\" \"AC->B\" \"CB->AB\" ACABBACABCB", argv[0]);
+        printExamples(argv[0]);
         exit(-1);
     }
     RuleSet rs = {
