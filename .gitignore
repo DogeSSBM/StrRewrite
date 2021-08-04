@@ -1,3 +1,7 @@
+# Dev Files
+.tags
+*.tags
+
 # Prerequisites
 *.d
 
