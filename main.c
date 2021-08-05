@@ -29,15 +29,60 @@ typedef struct{
     Rule *rule;
 }RuleSet;
 
+typedef enum{S_UNIT, S_BASIC, S_UNION}SetType;
+
+typedef struct Set_s{
+    SetType type;
+    union{
+        struct{
+            char *unitVale;
+        };
+        struct{
+            uint numMembers;
+            union{
+                char **str;
+                struct Set_s **member;
+            };
+        };
+    };
+}Set;
+
+bool inSet(const char *str, Set *set)
+{
+    switch(set->type){
+        case S_UNIT:
+            return strcmp(str, set->unitVale) == 0;
+            break;
+        case S_BASIC:
+            for(uint i = 0; i < set->numMembers; i++){
+                if(strcmp(str, set->str[i]) == 0)
+                    return true;
+            }
+            break;
+        case S_UNION:
+            for(uint i = 0; i < set->numMembers; i++){
+                if(inSet(str, set->member[i]))
+                    return true;
+            }
+            break;
+        default:
+            printf("SetType undefined. str: %s\n", set->unitVale);
+            exit(-1);
+            break;
+    }
+    return false;
+}
+
 void printExamples(char *prog)
 {
     const char *example[] = {
         "\"AA->B\" \"BA->CA\" \"AC->B\" \"CB->AB\" ACABBACABCB",
         "\"0->1\" \"1->2\" \"2->3\" 000",
         "\"01->10\" \"11->00\" 10101011",
+        "\"101<->010\" \"111->0\" 101010101000010",
         "\"0->1\" \"1->2\" \"2->3\" \"3->4\" \"4->5\" \"5->6\" \"6->7\" \"7->8\" \"8->9\" \"9->0\" 00"
     };
-    for(uint i = 0; i < 4; i++)
+    for(uint i = 0; i < 5; i++)
         printf("\nExample %u:\n%s %s\n", i+1, prog, example[i]);
 }
 
@@ -126,6 +171,39 @@ RuleList* appendRuleList(char *find, char *replace, RuleList *list)
     list->find = find;
     list->replace = replace;
     return list;
+}
+
+RuleList* setReplaceToRuleList(Set *set, char *replace, RuleList *list)
+{
+    switch(set->type){
+        case S_UNIT:
+            list = appendRuleList(set->unitVale, replace, list);
+            free(set);
+            return list;
+            break;
+        case S_BASIC:
+            for(uint i = 0; i < set->numMembers; i++){
+                list = appendRuleList(set->str[i], replace, list);
+            }
+            free(set->str);
+            free(set);
+            return list;
+            break;
+        case S_UNION:
+            for(uint i = 0; i < set->numMembers; i++){
+                list = setReplaceToRuleList(set->member[i], replace, list);
+                free(set->member[i]);
+            }
+            free(set->member);
+            free(set);
+            return list;
+            break;
+        default:
+            printf("SetType undefined. str: %s\n", set->unitVale);
+            exit(-1);
+            break;
+    }
+    return false;
 }
 
 RuleList* parseSingleArrow(const char *str, RuleList *list)
@@ -249,6 +327,7 @@ char* replaceN(char *str, const char *find, const char *replace, const uint n)
     return ret;
 }
 
+// searches through list and returns the first node with matching str, or NULL if no match found
 Node* searchStrList(NodeList *list, const char *str)
 {
     while(list != NULL){
@@ -259,12 +338,33 @@ Node* searchStrList(NodeList *list, const char *str)
     return NULL;
 }
 
+// counts the number of positions where the rule could be applied for every rule
 void createOccurances(Node *n, const RuleSet rs)
 {
     n->ruleOccurances = calloc(rs.numRules, sizeof(uint));
     for(uint i = 0; i < rs.numRules; i++){
         n->ruleOccurances[i] = numMatches(n->str, rs.rule[i].find);
         n->totalOccurances += n->ruleOccurances[i];
+    }
+}
+
+// true if no more rules can be applied
+bool isNormalForm(const char *str, const RuleSet rs)
+{
+    for(uint i = 0; i < rs.numRules; i++){
+        if(numMatches(str, rs.rule[i].find)>0)
+            return false;
+    }
+    return true;
+}
+
+void printNormalForms(NodeList *list, const RuleSet rs)
+{
+    uint count = 0;
+    while(list != NULL){
+        if(isNormalForm(list->node->str, rs))
+            printf("Normal form %u: %s\n", ++count, list->node->str);
+        list = list->next;
     }
 }
 
@@ -319,6 +419,7 @@ int main(int argc, char **argv)
     list->node = calloc(1, sizeof(Node));
     list->node->str = strdup(argv[argc-1]);
     list = rewrite(list->node, rs, list);
+    printNormalForms(list, rs);
     freeList(list);
     freeRuleSet(rs);
 
