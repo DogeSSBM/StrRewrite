@@ -29,19 +29,18 @@ typedef struct{
     Rule *rule;
 }RuleSet;
 
-typedef enum{S_UNIT, S_BASIC, S_UNION}SetType;
+typedef enum{S_UNIT, S_BASIC, S_RULE, S_UNION}SetType;
 
 typedef struct Set_s{
     SetType type;
     union{
-        struct{
-            char *unitVale;
-        };
+        char *unitVale;
         struct{
             uint numMembers;
             union{
                 char **str;
                 struct Set_s **member;
+                Rule rule;
             };
         };
     };
@@ -179,7 +178,6 @@ RuleList* setReplaceToRuleList(Set *set, char *replace, RuleList *list)
         case S_UNIT:
             list = appendRuleList(set->unitVale, replace, list);
             free(set);
-            return list;
             break;
         case S_BASIC:
             for(uint i = 0; i < set->numMembers; i++){
@@ -187,7 +185,11 @@ RuleList* setReplaceToRuleList(Set *set, char *replace, RuleList *list)
             }
             free(set->str);
             free(set);
-            return list;
+            break;
+        case S_RULE:
+            for(uint i = 0; i < set->numMembers; i++){
+                list = appendRuleList(set->rule.find, set->rule.replace, list);
+            }
             break;
         case S_UNION:
             for(uint i = 0; i < set->numMembers; i++){
@@ -196,14 +198,13 @@ RuleList* setReplaceToRuleList(Set *set, char *replace, RuleList *list)
             }
             free(set->member);
             free(set);
-            return list;
             break;
         default:
             printf("SetType undefined. str: %s\n", set->unitVale);
             exit(-1);
             break;
     }
-    return false;
+    return list;
 }
 
 RuleList* parseSingleArrow(const char *str, RuleList *list)
@@ -227,6 +228,42 @@ RuleList* parseSingleArrow(const char *str, RuleList *list)
     strncpy(find, str, flen);
     strcpy(replace, arrow+2);
     return list = appendRuleList(find, replace, list);
+}
+
+// returns the number of times find occurs in str
+uint numMatches(const char *str, const char *find)
+{
+    const char *c = str;
+    uint ret = 0;
+    do{
+        if((c = strstr(c, find))!=NULL){
+            c++;
+            ret++;
+        }
+    }while(c);
+    return ret;
+}
+
+// returns a pointer to the start of the nth occurence of find in str
+const char* getMatchN(const char *str, const char *find, const uint n)
+{
+    const char *c = str;
+    for(uint i = 0; i < n; i++){
+        if((c = strstr(c, find))==NULL){
+            printf("Could not get match number %u/%u of %s in %s!", i, n, find, str);
+            exit(-1);
+        }
+        c++;
+    }
+    return strstr(c, find);
+}
+
+RuleList* splitCommas(RuleList *rule, RuleList *list)
+{
+    const uint numComma = numMatches(str, ",");
+    for(uint i = 0; i < numComma; i++){
+
+    }
 }
 
 RuleList* parseArrow(const char *str, RuleList *list)
@@ -268,35 +305,13 @@ RuleSet parseRuleSet(const uint argc, char **argv)
     for(uint i = 1; i < argc-1; i++)
         list = parseArrow(argv[i], list);
 
-    return convertRuleListToSet(list);
-}
-
-// returns the number of times find occurs in str
-uint numMatches(const char *str, const char *find)
-{
-    const char *c = str;
-    uint ret = 0;
-    do{
-        if((c = strstr(c, find))!=NULL){
-            c++;
-            ret++;
-        }
-    }while(c);
-    return ret;
-}
-
-// returns a pointer to the start of the nth occurence of find in str
-const char* getMatchN(const char *str, const char *find, const uint n)
-{
-    const char *c = str;
-    for(uint i = 0; i < n; i++){
-        if((c = strstr(c, find))==NULL){
-            printf("Could not get match number %u/%u of %s in %s!", i, n, find, str);
-            exit(-1);
-        }
-        c++;
+    RuleList *current = list;
+    while(current != NULL){
+        list = splitCommas(current, list);
+        current = current->next;
     }
-    return strstr(c, find);
+
+    return convertRuleListToSet(list);
 }
 
 // returns the length of a string where replace has been substituted for one instance of find in str
@@ -338,6 +353,15 @@ Node* searchStrList(NodeList *list, const char *str)
     return NULL;
 }
 
+void printList(NodeList *list)
+{
+    uint count = 0;
+    while(list != NULL){
+        printf("str: %s, count: %u\n", n->str, count++);
+        list = list->next;
+    }
+}
+
 // counts the number of positions where the rule could be applied for every rule
 void createOccurances(Node *n, const RuleSet rs)
 {
@@ -371,7 +395,7 @@ void printNormalForms(NodeList *list, const RuleSet rs)
 NodeList* rewrite(Node *n, const RuleSet rs, NodeList *list)
 {
     static uint count = 0;
-    printf("str: %s, count: %u\n", n->str, count++);
+    // printf("str: %s, count: %u\n", n->str, count++);
     createOccurances(n, rs);
     n->child = calloc(n->totalOccurances, sizeof(Node*));
     uint current = 0;
