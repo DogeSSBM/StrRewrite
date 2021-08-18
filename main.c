@@ -272,7 +272,7 @@ const char* getMatchN(const char *str, const char *find, const uint n)
 SubStr parseArrowSection(const char *str)
 {
     SubStr arrow;
-    const bool isDouble = arrow.str = strstr(str, "<->") != NULL;
+    const bool isDouble = (arrow.str = strstr(str, "<->")) != NULL;
     if(!isDouble && (arrow.str = strstr(str, "->")) == NULL){
         printf("Error parsing \"%s\".\nRules must contain\"<->\" or \"->\"\n", str);
         exit(-1);
