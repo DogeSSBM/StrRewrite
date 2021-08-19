@@ -1,8 +1,9 @@
 #include "Includes.h"
 struct StrList_s;
-struct Rule_s;
 struct Node_s;
+struct NodeList_s;
 struct SubStr_s;
+struct Rule_s;
 struct Rule_s;
 struct RuleList_s;
 struct RuleSet_s;
@@ -12,18 +13,17 @@ typedef struct StrList_s{
     struct StrList_s *next;
 }StrList;
 
-// typedef struct Rule_s{
-//     uint id;
-//     StrList *l;
-//     StrList *r;
-// }Rule;
-
 typedef struct Node_s{
     struct Node_s *parent;
     char *str;
     struct Node_s *child;
     struct Node_s *next;
 }Node;
+
+typedef struct NodeList_s{
+    Node *node;
+    struct NodeList_s *next;
+}NodeList;
 
 typedef struct SubStr_s{
     char *str;
@@ -184,29 +184,6 @@ RuleList* appendRuleList(char *find, char *replace, char *l, char *r, RuleList *
     return list;
 }
 
-// RuleList* parseSingleArrow(const char *str, RuleList *list)
-// {
-//     char *arrow = strstr(str, "->");
-//     if(arrow == NULL){
-//         printf("Error parsing \"%s\".\nRules must be written \"A<->B\" or \"A->B\"\n", str);
-//         exit(-1);
-//     }
-//     if(strstr(arrow+1, "->")!=NULL){
-//         printf("Error parsing \"%s\".\nRewrite rules must have only one \"->\"\n", str);
-//         exit(-1);
-//     }
-//     if(strstr(str, "<->")){
-//         printf("Error parsing \"%s\".\nRules can only contain\"<->\" or \"->\" not both\n", str);
-//         exit(-1);
-//     }
-//     uint flen = arrow-str;
-//     char *find = malloc(flen+1);
-//     char *replace = malloc(strlen(arrow+2)+1);
-//     strncpy(find, str, flen);
-//     strcpy(replace, arrow+2);
-//     return list = appendRuleList(find, replace, list);
-// }
-
 // returns the number of times find occurs in str
 uint numMatches(const char *str, const char *find)
 {
@@ -240,9 +217,9 @@ uint subNumStr(const SubStr sec, const char *str)
 }
 
 // returns a pointer to the start of the nth occurence of str in sec
-const char* getMatchSecN(const SubStr sec, const char *str, const uint n)
+char* getMatchSecN(const SubStr sec, char *str, const uint n)
 {
-    const char *c = str;
+    char *c = str;
     const uint len = strlen(str);
     const char *end = sec.str+sec.len;
     for(uint i = 0; i < n+1; i++){
@@ -301,15 +278,16 @@ SubStr getSubR(const char *str, SubStr mid)
 {
     SubStr r;
     r.str = mid.str+mid.len;
-    r.len = strlen(str)-(r.str-str);
+    r.len = strlen(str)-((mid.str+mid.len)-str);
+    return r;
 }
 
-RuleList* parseRule(const char *str, RuleList *list)
+RuleList* parseRule(char *str, RuleList *list)
 {
     SubStr arrow = parseArrowSection(str);
     SubStr lsec = {
         .str = str,
-        .len = arrow.str-str;
+        .len = arrow.str-str
     };
     SubStr rsec;
     rsec.str = arrow.str+arrow.len;
@@ -320,15 +298,15 @@ RuleList* parseRule(const char *str, RuleList *list)
     next.ruleNum = list->ruleNum+1;
     uint commas = subNumStr(lsec, ",");
     if(commas == 2){
-        const char *lc = getMatchSecN(lsec, ",", 0);
-        const char *rc = getMatchSecN(lsec, ",", 1);
+        char *lc = getMatchSecN(lsec, ",", 0);
+        char *rc = getMatchSecN(lsec, ",", 1);
         if(rc>arrow.str){
             printf("Commas can only appear on the left hand side of the arrow\n");
             exit(-1);
         }
        SubStr l;
         l.str = lsec.str;
-        l.len = lc-lsec.str
+        l.len = lc-lsec.str;
        SubStr m;
         m.str = lc+1;
         m.len = rc-m.str;
@@ -357,32 +335,6 @@ RuleList* parseRule(const char *str, RuleList *list)
     }
     return appendRuleList(next.find, next.replace, next.l, next.r, list);
 }
-
-// RuleList* parseArrow(const char *str, RuleList *list)
-// {
-//     char *arrow = strstr(str, "<->");
-//     if(arrow == NULL)
-//         return parseSingleArrow(str, list);
-//     if(strstr(arrow+1, "<->")!=NULL){
-//         printf("Error parsing \"%s\".\nEquivalence rules must have only one \"<->\"\n", str);
-//         exit(-1);
-//     }
-//     char *singleArrow = strstr(str, "->");
-//     if(singleArrow != arrow+1 || strstr(arrow+2, "->")){
-//         printf("Error parsing \"%s\".\nRules can only contain\"<->\" or \"->\" not both\n", str);
-//         exit(-1);
-//     }
-//     uint flen = arrow-str;
-//     char *find1 = malloc(flen+1);
-//     char *replace1 = malloc(strlen(arrow+3)+1);
-//     strncpy(find1, str, flen);
-//     strcpy(replace1, arrow+3);
-//
-//     char *find2 = strdup(replace1);
-//     char *replace2 = strdup(find1);
-//
-//     return list = appendRuleList(find2, replace2, list = appendRuleList(find1, replace1, list));
-// }
 
 RuleSet parseRuleSet(const uint argc, char **argv)
 {
@@ -476,6 +428,13 @@ void printNormalForms(NodeList *list, const RuleSet rs)
             printf("Normal form %u: %s\n", ++count, list->node->str);
         list = list->next;
     }
+}
+
+NodeList* rewriteAllOccurances(Node *n, const Rule r, NodeList *list)
+{
+    static uint count = 1;
+    printf("Rewrite: %u\n", count++);
+
 }
 
 NodeList* rewrite(Node *n, const RuleSet rs, NodeList *list)
