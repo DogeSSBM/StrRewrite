@@ -1,225 +1,191 @@
 #include "Includes.h"
 
-typedef struct Node_s{
-    char *str;
-    uint *ruleOccurances;   // number of times each rule occurs in str
-    uint totalOccurances;
-    struct Node_s **child;
-}Node;
+/*
+#v1$abc#v2->#v2$ABC#v1
+1abc2->2ABC1
 
-typedef struct NodeList_s{
-    Node *node;
-    struct NodeList_s *next;
-}NodeList;
+#v1 $abc #v2 -> #v2 $ABC #v1
+1 abc 2 -> 2 ABC 1
 
-typedef struct{
-    char *find;
-    char *replace;
+#v1 $* #v2 -> #v2 $* #v1
+3*2 -> 2*3
+*/
+
+typedef enum{T_STR, T_VAR}TermType;
+
+typedef struct Term_s{
+    TermType type;
+    union{
+        char *str;
+        struct{
+            char *label;
+            char *value;
+        };
+    };
+    struct Term_s *next;
+}Term;
+
+typedef struct Rule_s{
+    Term *l;
+    Term *r;
+    struct Rule_s *next;
 }Rule;
 
-typedef struct{
-    uint numRules;
-    Rule *rule;
-}RuleSet;
-
-void freeRule(const Rule rule)
+char *getArrow
+(char *str)
 {
-    if(rule.find != NULL)
-        free(rule.find);
-    if(rule.replace != NULL)
-        free(rule.replace);
-}
-
-void freeRuleSet(RuleSet rs)
-{
-    if(rs.numRules == 0)
-        return;
-    for(uint i = 0; i < rs.numRules; i++)
-        freeRule(rs.rule[i]);
-    free(rs.rule);
-}
-
-void printRule(const Rule rule)
-{
-    printf("{\"%s\"->\"%s\"}\n", rule.find, rule.replace);
-}
-
-void printRuleSet(const RuleSet rs)
-{
-    printf("----------------------------------\n");
-    for(uint i = 0; i < rs.numRules; i++){
-        printf("rule[%u] = ", i);
-        printRule(rs.rule[i]);
-    }
-    printf("----------------------------------\n");
-}
-
-Rule parseRule(const char *str)
-{
-    Rule rule = {0};
-    char *arrow = strstr(str, "->");
-    if(arrow==NULL){
-        printf("Error parsing \"%s\".\nRules must be written \"find->replace\n", str);
-        exit(-1);
-    }else if(strstr(arrow+1, "->")!=NULL){
-        printf("Error parsing \"%s\".\nRules must have only one \"->\"\n", str);
-        exit(-1);
-    }
-    const uint flen = arrow-str;
-    rule.find = malloc(flen+1);
-    rule.replace = malloc(strlen(arrow+2)+1);
-    strncpy(rule.find, str, flen);
-    strcpy(rule.replace, arrow+2);
-    return rule;
-}
-
-RuleSet parseRuleSet(const uint argc, char **argv)
-{
-    if(argc < 3){
-        printf("Usage:\n%s <rule 1> [rule 2] [rule ...] <input string>\n", argv[0]);
-        printf("\trules: find->replace \n");
-        printf("\nExample:\n");
-        printf("%s \"AA->B\" \"BA->CA\" \"AC->B\" \"CB->AB\" ACABBACABCB\n", argv[0]);
-        exit(-1);
-    }
-    RuleSet rs = {
-        .numRules = argc-2,
-        .rule = malloc(sizeof(Rule)*(argc-2)),
-    };
-
-    for(uint i = 0; i < argc-2; i++)
-        rs.rule[i] = parseRule(argv[i+1]);
-    return rs;
-}
-
-// returns the number of times find occurs in str
-uint numMatches(const char *str, const char *find)
-{
-    const char *c = str;
-    uint ret = 0;
-    do{
-        if((c = strstr(c, find))!=NULL){
-            c++;
-            ret++;
-        }
-    }while(c);
-    return ret;
-}
-
-// returns a pointer to the start of the nth occurence of find in str
-const char* getMatchN(const char *str, const char *find, const uint n)
-{
-    const char *c = str;
-    for(uint i = 0; i < n; i++){
-        if((c = strstr(c, find))==NULL){
-            printf("Could not get match number %u/%u of %s in %s!", i, n, find, str);
-            exit(-1);
-        }
-        c++;
-    }
-    return strstr(c, find);
-}
-
-// returns the length of a string where replace has been substituted for one instance of find in str
-uint newStrLen(const char *str, const char *find, const char *replace)
-{
-    const int ret = strlen(str)+(strlen(replace)-strlen(find));
-    if(ret<0){
-        printf("err: replaceLen < 0\n");
-        printf("str: \"%s\", find: \"%s\", replace: \"%s\"\n", str, find, replace);
-        exit(-1);
-    }
-    return (uint)ret;
-}
-
-// constructs a new string substituting replace for the Nth occourance of find in str
-char* replaceN(char *str, const char *find, const char *replace, const uint n)
-{
-    char *ret = calloc(1, newStrLen(str, find, replace));
-
-    // get nth match
-    const char *matchPos = getMatchN(str, find, n);
-
-    // get length up to the nth match
-    const uint beforeMatchLen = matchPos-str;
-    strncat(ret, str, beforeMatchLen);
-    strcat(ret, replace);
-    strcat(ret, matchPos+strlen(find));
-    return ret;
-}
-
-Node* searchStrList(NodeList *list, const char *str)
-{
-    while(list != NULL){
-        if(strcmp(list->node->str, str) == 0)
-            return list->node;
-        list = list->next;
-    }
+    char *arrow = strstr(str, "<->");
+    if(arrow != NULL)
+        return arrow;
+    arrow = strstr(str, "->");
+    if(arrow != NULL)
+        return arrow;
+    printf("Could not parse arrow in \"%s\"\n", str);
     return NULL;
 }
 
-void createOccurances(Node *n, const RuleSet rs)
+Term *getTermsL
+(char *str)
 {
-    n->ruleOccurances = calloc(rs.numRules, sizeof(uint));
-    for(uint i = 0; i < rs.numRules; i++){
-        n->ruleOccurances[i] = numMatches(n->str, rs.rule[i].find);
-        n->totalOccurances += n->ruleOccurances[i];
+    Term *terms = NULL;
+    char *arrow = getArrow(str);
+    while(1){
+        str = strpbrk(str, "#$");
+        if(str == NULL || str >= arrow)
+            return terms;
+
+        Term *append = terms;
+        terms = calloc(1, sizeof(Term));
+        terms->next = append;
+        terms->type = *str == '#' ? T_VAR : T_STR;
+        const uint tlen = strcspn(str, " $#");
+        terms->str
+        while(str[])
+        terms->str
+        // uint len = 0;
+        // do{
+        //     str++;
+        //     len += strcspn(str, " $#");
+        // }while(*(str-1)=='\\');
+
+
+        Term *append = terms;
+        terms = calloc(1, sizeof(Term));
+        terms->next = append;
     }
+    return terms;
 }
 
-NodeList* rewrite(Node *n, const RuleSet rs, NodeList *list)
+uint countTermsL
+(char *str)
 {
-    static uint count = 0;
-    printf("str: %s, count: %u\n", n->str, count++);
-    createOccurances(n, rs);
-    n->child = calloc(n->totalOccurances, sizeof(Node*));
-    uint current = 0;
-    for(uint i = 0; i < rs.numRules; i++){
-        for(uint j = 0; j < n->ruleOccurances[i]; j++){
-            char *newstr = replaceN(n->str, rs.rule[i].find, rs.rule[i].replace, j);
-            if((n->child[current+j] = searchStrList(list, newstr))==NULL){
-                n->child[current+j] = calloc(1, sizeof(Node));
-                n->child[current+j]->str = newstr;
-                NodeList *head = calloc(1, sizeof(NodeList));
-                head->next = list;
-                head->node = n->child[current+j];
-                list = rewrite(n->child[current+j], rs, head);
-            }else{
-                free(newstr);
-            }
-        }
-        current+=n->ruleOccurances[i];
+    char *arrow = getArrow(str);
+    uint count = 0;
+    while(1){
+        str = strpbrk(str, "#$");
+        if(str == NULL || str >= arrow)
+            return count;
+        count++;
+        str++;
     }
-    if(current != n->totalOccurances){
-        printf("Total child nodes generated != n->totalOccurances\n");
+    return count;
+}
+
+uint countTermsR
+(char *str)
+{
+    char *arrow = getArrow(str);
+    str = *arrow=='<' ? arrow+2 : arrow+1;
+    uint count = 0;
+    while(1){
+        str = strpbrk(str, "#$");
+        if(str == NULL)
+            return count;
+        count++;
+        str++;
+    }
+    return count;
+}
+
+Term *termAllocN
+(const uint n)
+{
+    Term *terms = NULL;
+    for(uint i = 0; i < n; i++){
+        Term *append = terms;
+        terms = calloc(1, sizeof(Term));
+        terms->next = append;
+    }
+    return terms;
+}
+
+uint termCount
+(Term *t)
+{
+    uint count = 0;
+    while(t != NULL){
+        count++;
+        t = t->next;
+    }
+    return count;
+}
+
+Term *dupeTerms
+(Term *t)
+{
+    Term *ret = termAllocN(termCount(t));
+    Term *d = ret;
+    while(t != NULL && d != NULL){
+        d->type = t->type;
+        const uint strl = strlen(t->str);
+        const uint valuel = strlen(t->value);
+        d->str = malloc(strl+1);
+        d->value = malloc(valuel+1);
+        memcpy(d->str, t->str, strl);
+        memcpy(d->value, t->value, valuel);
+        d = d->next;
+        t = t->next;
+    }
+    if(d != NULL || t != NULL){
+        printf("Mismatch in number of terms???\n");
         exit(-1);
     }
-    return list;
+    return ret;
 }
 
-void freeList(NodeList *list)
+R
+
+Rule *parseRules
+(int argc, char **argv)
 {
-    while(list != NULL){
-        NodeList *newhead = list->next;
-        free(list->node->str);
-        free(list->node->ruleOccurances);
-        free(list->node->child);
-        free(list->node);
-        free(list);
-        list = newhead;
+    if(argc < 3){
+        printf("Enter at least 1 rule followed by a starting string\n");
+        exit(-1);
     }
+    Rule *rules = NULL;
+    for(uint i = 1; i < argc-1; i++){
+        Rule *append = rules;
+        rules = calloc(1, sizeof(Rule));
+        rules->next = append;
+        const uint lnum countTermsL(argv[i]);
+        const uint rnum countTermsR(argv[i]);
+        rules->l = termAllocN(lnum);
+        rules->r = termAllocN(rnum);
+        if(*(getArrow(argv[i])) == '<'){
+            Rule *reverse = calloc(1, sizeof(Rule));
+            reverse->l = dupeTerms(rules->r);
+            reverse->r = dupeTerms(rules->l);
+            reverse->next = rules;
+            rules = reverse;
+        }
+
+    }
+
 }
 
-int main(int argc, char **argv)
+int main
+(int argc, char **argv)
 {
-    RuleSet rs = parseRuleSet(argc, argv);
-    printRuleSet(rs);
-    NodeList *list = calloc(1, sizeof(NodeList));
-    list->node = calloc(1, sizeof(Node));
-    list->node->str = strdup(argv[argc-1]);
-    list = rewrite(list->node, rs, list);
-    freeList(list);
-    freeRuleSet(rs);
-
+    Rule *rules = parseRules(argc, argv)
     return 0;
 }
