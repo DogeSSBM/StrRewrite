@@ -1,191 +1,71 @@
 #include "Includes.h"
 
-/*
-#v1$abc#v2->#v2$ABC#v1
-1abc2->2ABC1
+typedef enum{K_NONE = 0, K_CB_O, K_CB_C, K_SB_O, K_SB_C, K_STR, K_VAR, K_SARR, K_DARR}TokenType;
 
-#v1 $abc #v2 -> #v2 $ABC #v1
-1 abc 2 -> 2 ABC 1
+typedef struct Token_s{
+    struct Token_s *prev;
+    TokenType type;
+    char *start;
+    char *end;
+    uint len;
+    struct Token_s *next;
+}Token;
 
-#v1 $* #v2 -> #v2 $* #v1
-3*2 -> 2*3
-*/
-
-typedef enum{T_STR, T_VAR}TermType;
-
-typedef struct Term_s{
-    TermType type;
-    union{
-        char *str;
-        struct{
-            char *label;
-            char *value;
-        };
-    };
-    struct Term_s *next;
-}Term;
-
-typedef struct Rule_s{
-    Term *l;
-    Term *r;
-    struct Rule_s *next;
-}Rule;
-
-char *getArrow
-(char *str)
+char* readFile(char *filePath)
 {
-    char *arrow = strstr(str, "<->");
-    if(arrow != NULL)
-        return arrow;
-    arrow = strstr(str, "->");
-    if(arrow != NULL)
-        return arrow;
-    printf("Could not parse arrow in \"%s\"\n", str);
-    return NULL;
-}
-
-Term *getTermsL
-(char *str)
-{
-    Term *terms = NULL;
-    char *arrow = getArrow(str);
-    while(1){
-        str = strpbrk(str, "#$");
-        if(str == NULL || str >= arrow)
-            return terms;
-
-        Term *append = terms;
-        terms = calloc(1, sizeof(Term));
-        terms->next = append;
-        terms->type = *str == '#' ? T_VAR : T_STR;
-        const uint tlen = strcspn(str, " $#");
-        terms->str
-        while(str[])
-        terms->str
-        // uint len = 0;
-        // do{
-        //     str++;
-        //     len += strcspn(str, " $#");
-        // }while(*(str-1)=='\\');
-
-
-        Term *append = terms;
-        terms = calloc(1, sizeof(Term));
-        terms->next = append;
-    }
-    return terms;
-}
-
-uint countTermsL
-(char *str)
-{
-    char *arrow = getArrow(str);
-    uint count = 0;
-    while(1){
-        str = strpbrk(str, "#$");
-        if(str == NULL || str >= arrow)
-            return count;
-        count++;
-        str++;
-    }
-    return count;
-}
-
-uint countTermsR
-(char *str)
-{
-    char *arrow = getArrow(str);
-    str = *arrow=='<' ? arrow+2 : arrow+1;
-    uint count = 0;
-    while(1){
-        str = strpbrk(str, "#$");
-        if(str == NULL)
-            return count;
-        count++;
-        str++;
-    }
-    return count;
-}
-
-Term *termAllocN
-(const uint n)
-{
-    Term *terms = NULL;
-    for(uint i = 0; i < n; i++){
-        Term *append = terms;
-        terms = calloc(1, sizeof(Term));
-        terms->next = append;
-    }
-    return terms;
-}
-
-uint termCount
-(Term *t)
-{
-    uint count = 0;
-    while(t != NULL){
-        count++;
-        t = t->next;
-    }
-    return count;
-}
-
-Term *dupeTerms
-(Term *t)
-{
-    Term *ret = termAllocN(termCount(t));
-    Term *d = ret;
-    while(t != NULL && d != NULL){
-        d->type = t->type;
-        const uint strl = strlen(t->str);
-        const uint valuel = strlen(t->value);
-        d->str = malloc(strl+1);
-        d->value = malloc(valuel+1);
-        memcpy(d->str, t->str, strl);
-        memcpy(d->value, t->value, valuel);
-        d = d->next;
-        t = t->next;
-    }
-    if(d != NULL || t != NULL){
-        printf("Mismatch in number of terms???\n");
+    char *buffer = 0;
+    long length;
+    File *f = NULL;
+    if((f = fopen(filePath, "rb")) == NULL){
+        printf("Unable to open file \"%s\"\n", filePath);
         exit(-1);
     }
-    return ret;
+
+    fseek(f, 0, SEEK_END);
+    length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    buffer = calloc(length+1, sizeof(char));
+    fread(buffer, 1, length, f);
+    buffer[length] = '\0';
+    fclose(f);
+    return buffer;
 }
 
-R
 
-Rule *parseRules
-(int argc, char **argv)
+Token *nextToken
+(Token *current)
 {
-    if(argc < 3){
-        printf("Enter at least 1 rule followed by a starting string\n");
-        exit(-1);
-    }
-    Rule *rules = NULL;
-    for(uint i = 1; i < argc-1; i++){
-        Rule *append = rules;
-        rules = calloc(1, sizeof(Rule));
-        rules->next = append;
-        const uint lnum countTermsL(argv[i]);
-        const uint rnum countTermsR(argv[i]);
-        rules->l = termAllocN(lnum);
-        rules->r = termAllocN(rnum);
-        if(*(getArrow(argv[i])) == '<'){
-            Rule *reverse = calloc(1, sizeof(Rule));
-            reverse->l = dupeTerms(rules->r);
-            reverse->r = dupeTerms(rules->l);
-            reverse->next = rules;
-            rules = reverse;
+    current->next = calloc(1, sizeof(Token));
+    current->next->prev = current;
+    return current->next;
+}
+
+Token *tokenize
+(char *text)
+{
+    Token *list = calloc(1, sizeof(Token));
+    char *pos = text;
+    while(1){
+        char c = *pos;
+        switch(c){
+            case ' ':
+            case '\t':
+            case '\n':
+                pos++;
+                break;
+            case '{':
+                list->type = K_CB_O;
+                list->start = pos;
+                list->end = pos+1;
+                list->len = 1;
         }
-
     }
-
 }
 
 int main
 (int argc, char **argv)
 {
-    Rule *rules = parseRules(argc, argv)
+    char *text = readFile(argc == 2? argv[1] : "./Test.txt");
+
     return 0;
 }
