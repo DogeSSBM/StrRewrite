@@ -65,6 +65,23 @@ char *getStrN
     return source == NULL ? NULL : source-1;
 }
 
+char *getNextArrowBeforeEnd
+(char *pos, char *end)
+{
+    char *sArrowStart = strstr(pos, "->");
+    if(sArrowStart >= end || sArrowStart == NULL)
+        return NULL;
+    char *dArrowStart = strstr(pos, "<->");
+    return dArrowStart < sArrowStart? dArrowStart : sArrowStart;
+}
+
+char *getSeqEnd
+(char *seqStart)
+{
+    char *seqEnd = strstr(seqStart+1, "@");
+    return seqEnd == NULL ? seqStart+strlen(seqStart) : seqEnd;
+}
+
 char *getStartOfLine
 (char *pos)
 {
@@ -218,7 +235,7 @@ RuleSetSeq *parseSeq
         //     }
         //     rulePos = getStartOfNextLine(rulePos);
         // }
-        // if(i+1<count)
+        if(i+1<count)
             current->next = calloc(1, sizeof(RuleSetSeq));
         current = current->next;
     }
