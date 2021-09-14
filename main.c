@@ -42,6 +42,40 @@ char *readFile
     return buffer;
 }
 
+void printTerm
+(Term *term)
+{
+    while(term!=NULL){
+        printf("%c%s", term->type==T_STR?'$':'_', term->type==T_STR?term->text:term->name);
+        term = term->next;
+    }
+}
+
+void printRule
+(Rule *rule)
+{
+    printf("\t");
+    printTerm(rule->l);
+    printf("->");
+    printTerm(rule->r);
+    printf("\n");
+}
+
+void printRuleSet
+(RuleSet *rs)
+{
+    while(rs != NULL){
+        printf("RuleSet \"@%s\" -\n", rs->name);
+        Rule *rule = rs->rules;
+        while(rule != NULL){
+            printRule(rule);
+            rule = rule->next;
+        }
+        rs = rs->next;
+        printf("\n");
+    }
+}
+
 Term *appendTerm
 (Term *list, Term *term)
 {
@@ -114,6 +148,12 @@ RuleSet *currentRuleSet
     return list;
 }
 
+bool isDelim
+(char c)
+{
+    return c == '-' || c == '\n' || c == '<' || c == '@' || c == '_' || c == '$';
+}
+
 uint getLen
 (char *pos)
 {
@@ -124,7 +164,7 @@ uint getLen
     }
     uint len = 0;
     pos++;
-    while(isalnum(*pos)){
+    while(!isDelim(*pos)){
         pos++;
         len++;
     }
@@ -143,11 +183,13 @@ Term *parseTerm
     }
     Term *term = calloc(1, sizeof(Term));
     term->type = *pos=='$'?T_STR:T_VAR;
-    pos++;
     const uint len = getLen(pos);
+    pos++;
     char **label = term->type==T_STR ? &(term->text) : &(term->name);
     *label = calloc(len+1, 1);
     memcpy(*label, pos, len);
+    printTerm(term);
+    printf("\n");
     return term;
 }
 
@@ -163,91 +205,86 @@ Term *dupTerm
     char **duplabel = dup->type==T_STR ? &(dup->text) : &(dup->name);
     *duplabel = calloc(len+1, 1);
     memcpy(*duplabel, *label, len);
+    return dup;
 }
 
 Rule *reverseRule
 (Rule *rule)
 {
+    if(rule == NULL)
+        return NULL;
     Rule *rev = calloc(1, sizeof(Rule));
-    Term *l = rule->l;
-    Term *r = rule->r;
+    Term *term = rule->r;
+    while(term != NULL){
+        rev->l = appendTerm(rev->l, dupTerm(term));
+        term = term->next;
+    }
+    term = rule->l;
+    while(term != NULL){
+        rev->r = appendTerm(rev->r, dupTerm(term));
+        term = term->next;
+    }
+    return rev;
 }
 
 Rule *parseRule
 (char *pos)
 {
-    char *start = pos;
+    // char *start = pos;
     if(*pos!='$' && *pos!='_'){
         printf("no $/_ ? %s", pos);
         exit(-1);
     }
+    char *arrow = strstr(pos, "->");
+    bool doubleArrow = *(arrow-1) == '<';
+    arrow-=doubleArrow;
     Rule *rule = calloc(1, sizeof(Rule));
     Term *term = NULL;
-    do{
+    while(pos<arrow){
         term = parseTerm(pos);
         rule->l = appendTerm(rule->l, term);
         pos++;
-        pos = strpbrk(pos, "<-$_");
-    }while(term!=NULL);
-
+        pos = strpbrk(pos, "$_");
+    }//while(term!=NULL && pos<arrow);
+    printf("%s\n", doubleArrow?"<->":"->");
+    // bool doubleArrow = strstr(pos, "<->") == pos;
     term = NULL;
-    do{
+    char *end = strchr(pos, '\n');
+    while(pos < end){
         term = parseTerm(pos);
         rule->r = appendTerm(rule->r, term);
         pos++;
         pos = strpbrk(pos, "<-$_");
-    }while(term!=NULL);
+    }//while(term!=NULL);
 
-
+    if(doubleArrow)
+        rule = appendRule(rule, reverseRule(rule));
+    return rule;
 }
 
-RuleSet *parseRuleSetN
+RuleSet *parseRuleSet
 (char *pos)
 {
     if(*pos!='@'){
         printf("no @? %s\n", pos);
         exit(-1);
     }
-    pos++;
     const uint len = getLen(pos);
     RuleSet *rs = calloc(1, sizeof(RuleSet));
     rs->name = calloc(len+1, 1);
-    memcpy(rs->name, current, len);
+    pos++;
+    memcpy(rs->name, pos, len);
     printf("Parsing ruleset \"@%s\"\n", rs->name);
     Rule *rule = NULL;
+    uint count = 1;
     do{
         pos = strchr(pos, '\n');
         pos = strpbrk(pos, "$_");
-        rule = parseRule(pos)
+        rule = parseRule(pos);
         rs->rules = appendRule(rs->rules, rule);
+        printf("parsed %u rule\n", count++);
     }while(rule!=NULL);
     return rs;
-}
-
-void printRuleSet
-(RuleSet *rs)
-{
-    while(rs != NULL){
-        printf("RuleSet \"@%s\" -\n", rs->name);
-        Rule *rule = rs->rules;
-        while(rule != NULL){
-            printf("\t");
-            Term *term = rule->l;
-            while(term!=NULL){
-                printf("%c%s", term->type==T_STR?'$':'_', term->type==T_STR?term->text:term->name);
-                term = term->next;
-            }
-            printf("->");
-            term = rule->r;
-            while(term!=NULL){
-                printf("%c%s", term->type==T_STR?'$':'_', term->type==T_STR?term->text:term->name);
-                term = term->next;
-            }
-            rule = rule->next;
-        }
-        rs = rs->next;
-        printf("\n");
-    }
 }
 
 int main
@@ -255,13 +292,11 @@ int main
 {
     char *source = readFile(argc == 2? argv[1] : "./Test.txt");
     char *current = source;
-    RuleSet rs = NULL;
+    RuleSet *rs = NULL;
     while((current = strchr(current, '@'))!=NULL){
         rs = appendRuleSet(rs, parseRuleSet(current));
         current++;
     }
-
-
-
+    printRuleSet(rs);
     return 0;
 }
