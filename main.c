@@ -21,18 +21,6 @@ typedef struct RuleSet_s{
     struct RuleSet_s *next;
 }RuleSet;
 
-typedef struct Sym_s{
-    SymType type;
-    char *start;
-    char *stop;
-    union{
-        Term *term;
-        Rule *rule;
-        RuleSet *ruleset;
-    }
-    struct Sym_s *next;
-}Sym;
-
 char *readFile
 (char *filePath)
 {
@@ -54,13 +42,113 @@ char *readFile
     return buffer;
 }
 
-Sym *appendSym
-(Sym)
+Term *appendTerm
+(Term *list, Term *term)
+{
+    if(list == NULL)
+        return term;
+    Term *current = list;
+    while(current->next != NULL)
+        current = current->next;
+    current->next = term;
+    return list;
+}
+
+Term *currentTerm
+(Term *list)
+{
+    if(list == NULL){
+        printf("Cannot get current Term from NULL list\n");
+        exit(-1);
+    }
+    while(list->next != NULL)
+        list = list->next;
+    return list;
+}
+
+Rule *appendRule
+(Rule *list, Rule *rule)
+{
+    if(list == NULL)
+        return rule;
+    Rule *current = list;
+    while(current->next != NULL)
+        current = current->next;
+    current->next = rule;
+    return list;
+}
+
+Rule *currentRule
+(Rule *list)
+{
+    if(list == NULL){
+        printf("Cannot get current Rule from NULL list\n");
+        exit(-1);
+    }
+    while(list->next != NULL)
+        list = list->next;
+    return list;
+}
+
+RuleSet *appendRuleSet
+(RuleSet *list, RuleSet *ruleset)
+{
+    if(list == NULL)
+        return ruleset;
+    RuleSet *current = list;
+    while(current->next != NULL)
+        current = current->next;
+    current->next = ruleset;
+    return list;
+}
+
+RuleSet *currentRuleSet
+(RuleSet *list)
+{
+    if(list == NULL){
+        printf("Cannot get current RuleSet from NULL list\n");
+        exit(-1);
+    }
+    while(list->next != NULL)
+        list = list->next;
+    return list;
+}
+
+uint getLen
+(char *pos)
+{
+    uint len = 0;
+    while(isalnum(*pos)){
+        pos++;
+        len++;
+    }
+    return len;
+}
 
 int main
 (int argc, char **argv)
 {
     char *source = readFile(argc == 2? argv[1] : "./Test.txt");
+    char *current = source;
+    RuleSet *ruleset = NULL;
 
+    while(*current != '\0'){
+        switch(*current){
+            case '@':
+                current++;
+                const uint len = getLen(current);
+                RuleSet *rs = calloc(1, sizeof(RuleSet));
+                rs->name = calloc(len+1, 1);
+                memcpy(rs->name, current, len);
+                ruleset = appendRuleSet(ruleset, rs);
+                current = strpbrk(current, "$_");
+                break;
+            case '$':
+                current++;
+                if()
+                const uint len = getLen(current);
+                if()
+        }
+    }
     return 0;
 }
