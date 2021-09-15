@@ -262,6 +262,9 @@ Rule *parseRule
     return rule;
 }
 
+char *nextRuleSetPos
+()
+
 RuleSet *parseRuleSet
 (char *pos)
 {
@@ -293,9 +296,12 @@ int main
     char *source = readFile(argc == 2? argv[1] : "./Test.txt");
     char *current = source;
     RuleSet *rs = NULL;
+    uint i = 0;
     while((current = strchr(current, '@'))!=NULL){
         rs = appendRuleSet(rs, parseRuleSet(current));
         current++;
+        i++;
+        printf("%u\n", i);
     }
     printRuleSet(rs);
     return 0;
