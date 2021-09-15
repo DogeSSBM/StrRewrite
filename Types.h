@@ -42,6 +42,7 @@ typedef struct Term_s{
 }Term;
 
 typedef struct Rule_s{
+    char *text;
     Term *l;
     Term *r;
     struct Rule_s *next;

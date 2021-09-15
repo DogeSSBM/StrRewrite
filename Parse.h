@@ -27,6 +27,17 @@ bool isDelim
     return c == '-' || c == '\n' || c == '<' || c == '@' || c == '_' || c == '$';
 }
 
+bool isDupeRule
+(Rule *rule1, Rule *rule2)
+{
+    if(
+        rule1 == rule2 || rule1 == NULL || rule2 == NULL ||
+        rule1->text == NULL || rule1->text == NULL
+    )
+        return false;
+    return strcmp(rule1->text, rule2->text) != 0;
+}
+
 uint getLen
 (char *pos)
 {
@@ -105,8 +116,6 @@ Term *parseTerm
     char **label = term->type==T_STR ? &(term->text) : &(term->name);
     *label = calloc(len+1, 1);
     memcpy(*label, pos, len);
-    // printTerm(term);
-    // printf("\n");
     return term;
 }
 
@@ -147,14 +156,32 @@ void printRule
     printf("\n");
 }
 
+Rule *freeRule
+(Rule *rule)
+{
+    if(rule==NULL)
+        return NULL;
+    free(rule->text);
+    while((rule->l = freeTerm(rule->l)) != NULL);
+    while((rule->r = freeTerm(rule->r)) != NULL);
+    Rule *next = rule->next;
+    free(rule);
+    return next;
+}
+
 Rule *appendRule
 (Rule *list, Rule *rule)
 {
     if(list == NULL)
         return rule;
     Rule *current = list;
-    while(current->next != NULL)
+    while(current->next != NULL){
+        // if(isDupeRule(current, rule)){
+        //     rule = freeRule(rule);
+        //     return list;
+        // }
         current = current->next;
+    }
     current->next = rule;
     return list;
 }
@@ -193,51 +220,39 @@ Rule *reverseRule
 Rule *parseRule
 (char *pos)
 {
-    // char *start = pos;
     if(*pos!='$' && *pos!='_'){
         printf("no $/_ ? %s", pos);
         exit(-1);
     }
+    char *end = strchr(pos, '\n');
     char *arrow = strstr(pos, "->");
     bool doubleArrow = *(arrow-1) == '<';
     arrow-=doubleArrow;
     Rule *rule = calloc(1, sizeof(Rule));
+    const uint textlen = end-pos;
+    rule->text = calloc(textlen+1, 1);
+    memcpy(rule->text, pos, textlen);
     Term *term = NULL;
     while(pos<arrow){
         term = parseTerm(pos);
         rule->l = appendTerm(rule->l, term);
         pos++;
         pos = strpbrk(pos, "$_");
-    }//while(term!=NULL && pos<arrow);
-    // printf("\t      %s\n", doubleArrow?"<->":"->");
-    // bool doubleArrow = strstr(pos, "<->") == pos;
+    }
+
     term = NULL;
-    char *end = strchr(pos, '\n');
     while(pos != NULL && pos < end){
         term = parseTerm(pos);
         rule->r = appendTerm(rule->r, term);
         pos++;
         pos = strpbrk(pos, "<-$_");
-    }//while(term!=NULL);
+    }
 
     if(doubleArrow){
         rule = appendRule(rule, reverseRule(rule));
-        // printf("appended reverse rule for double arrow\n");
     }
 
     return rule;
-}
-
-Rule *freeRule
-(Rule *rule)
-{
-    if(rule==NULL)
-        return NULL;
-    while((rule->l = freeTerm(rule->l)) != NULL);
-    while((rule->r = freeTerm(rule->r)) != NULL);
-    Rule *next = rule->next;
-    free(rule);
-    return next;
 }
 
 void printRuleSet
@@ -298,7 +313,7 @@ RuleSet *parseRuleSet
         // printf("\t%2u:\n", count++);
         pos = strchr(pos, '\n');
         pos = strpbrk(pos, "$_");
-        if(pos == NULL)
+        if(pos == NULL || pos > end)
             return rs;
         rule = parseRule(pos);
         rs->rules = appendRule(rs->rules, rule);
@@ -336,5 +351,4 @@ void freeAll
 (RuleSet *rs)
 {
     while((rs = freeRuleSet(rs)) != NULL);
-    printf("Free'd all\n");
 }

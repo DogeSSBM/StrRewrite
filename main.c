@@ -1,5 +1,12 @@
 #include "Includes.h"
 
+typedef struct Node_s{
+    char *str;
+    Term *term;
+    struct Node_s *children;
+    struct Node_s *next;
+}Node;
+
 int main
 (int argc, char **argv)
 {
@@ -10,3 +17,17 @@ int main
     freeAll(rs);
     return 0;
 }
+
+/*
+
+a_a
+
+aaaa
+
+aa
+a a
+a  a
+ aa
+ a a
+  aa
+*/
