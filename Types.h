@@ -31,3 +31,24 @@ typedef int64_t             i64;
 #define U32MAX              UINT32_MAX
 #define U64MAX              UINT64_MAX
 #define PI                  M_PI
+
+typedef enum{T_STR, T_VAR}TermType;
+
+typedef struct Term_s{
+    TermType type;
+    char *name; // NULL if T_STR.
+    char *text; // text of string if T_STR. text of T_VAR if bound. NULL if free.
+    struct Term_s *next;
+}Term;
+
+typedef struct Rule_s{
+    Term *l;
+    Term *r;
+    struct Rule_s *next;
+}Rule;
+
+typedef struct RuleSet_s{
+    char *name;
+    Rule *rules;
+    struct RuleSet_s *next;
+}RuleSet;

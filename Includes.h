@@ -12,4 +12,6 @@
 #include <math.h>
 #include <tgmath.h>
 
+#define err()   printf("Err at line %i\n", __LINE__)
 #include "Types.h"
+#include "Parse.h"
