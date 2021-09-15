@@ -289,7 +289,7 @@ RuleSet *parseRuleSet
     pos++;
     char *end = getEndOfRuleSet(pos);
     memcpy(rs->name, pos, len);
-    printf("Parsing ruleset \"@%s\"\n", rs->name);
+    // printf("Parsing ruleset \"@%s\"\n", rs->name);
     Rule *rule = NULL;
     while(pos != NULL && pos<end){
         // printf("\t%2u:\n", count++);
