@@ -188,8 +188,8 @@ Term *parseTerm
     char **label = term->type==T_STR ? &(term->text) : &(term->name);
     *label = calloc(len+1, 1);
     memcpy(*label, pos, len);
-    printTerm(term);
-    printf("\n");
+    // printTerm(term);
+    // printf("\n");
     return term;
 }
 
@@ -246,24 +246,35 @@ Rule *parseRule
         pos++;
         pos = strpbrk(pos, "$_");
     }//while(term!=NULL && pos<arrow);
-    printf("%s\n", doubleArrow?"<->":"->");
+    // printf("\t      %s\n", doubleArrow?"<->":"->");
     // bool doubleArrow = strstr(pos, "<->") == pos;
     term = NULL;
     char *end = strchr(pos, '\n');
-    while(pos < end){
+    while(pos != NULL && pos < end){
         term = parseTerm(pos);
         rule->r = appendTerm(rule->r, term);
         pos++;
         pos = strpbrk(pos, "<-$_");
     }//while(term!=NULL);
 
-    if(doubleArrow)
+    if(doubleArrow){
         rule = appendRule(rule, reverseRule(rule));
+        // printf("appended reverse rule for double arrow\n");
+    }
+
     return rule;
 }
 
-char *nextRuleSetPos
-()
+char *getEndOfRuleSet
+(char *pos)
+{
+    char *end = strchr(pos, '@');
+    if(end==NULL)
+        end = strchr(pos, '\0');
+    while(end>pos && isspace(*end))
+        end--;
+    return end;
+}
 
 RuleSet *parseRuleSet
 (char *pos)
@@ -276,17 +287,33 @@ RuleSet *parseRuleSet
     RuleSet *rs = calloc(1, sizeof(RuleSet));
     rs->name = calloc(len+1, 1);
     pos++;
+    char *end = getEndOfRuleSet(pos);
     memcpy(rs->name, pos, len);
     printf("Parsing ruleset \"@%s\"\n", rs->name);
     Rule *rule = NULL;
-    uint count = 1;
-    do{
+    while(pos != NULL && pos<end){
+        // printf("\t%2u:\n", count++);
         pos = strchr(pos, '\n');
         pos = strpbrk(pos, "$_");
+        if(pos == NULL)
+            return rs;
         rule = parseRule(pos);
         rs->rules = appendRule(rs->rules, rule);
-        printf("parsed %u rule\n", count++);
-    }while(rule!=NULL);
+    }//while(rule!=NULL);
+    return rs;
+}
+
+RuleSet *parseAll
+(char *pos)
+{
+    if(*pos!='@'){
+        printf("no @? %s\n", pos);
+        exit(-1);
+    }
+    RuleSet *rs = NULL;
+    do{
+        rs = appendRuleSet(rs, parseRuleSet(pos));
+    }while((pos = strchr(pos+1, '@'))!=NULL);
     return rs;
 }
 
@@ -294,15 +321,7 @@ int main
 (int argc, char **argv)
 {
     char *source = readFile(argc == 2? argv[1] : "./Test.txt");
-    char *current = source;
-    RuleSet *rs = NULL;
-    uint i = 0;
-    while((current = strchr(current, '@'))!=NULL){
-        rs = appendRuleSet(rs, parseRuleSet(current));
-        current++;
-        i++;
-        printf("%u\n", i);
-    }
+    RuleSet *rs = parseAll(source);
     printRuleSet(rs);
     return 0;
 }
