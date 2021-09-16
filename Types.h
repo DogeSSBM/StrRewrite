@@ -32,6 +32,12 @@ typedef int64_t             i64;
 #define U64MAX              UINT64_MAX
 #define PI                  M_PI
 
+struct Term_s;
+struct Rule_s;
+struct RuleSet_s;
+struct Node_s;
+struct Rewrite_s;
+
 typedef enum{T_STR, T_VAR}TermType;
 
 typedef struct Term_s{
@@ -53,3 +59,25 @@ typedef struct RuleSet_s{
     Rule *rules;
     struct RuleSet_s *next;
 }RuleSet;
+
+typedef struct Rewrite_s{
+    struct Node_s *result;
+    Term *matches;
+    Rule *rule;
+    struct Rewrite_s *next;
+}Rewrite;
+
+typedef struct Node_s{
+    char *str;
+    Rewrite *rewrites;
+}Node;
+
+typedef struct Strlist_s{
+    char *str;
+    struct Strlist_s * next;
+}Strlist;
+
+typedef struct State_s{
+    Strlist *flat;
+    Node *start;
+}State;

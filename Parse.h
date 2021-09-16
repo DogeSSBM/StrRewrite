@@ -156,6 +156,33 @@ void printRule
     printf("\n");
 }
 
+bool validRule
+(Rule *rule)
+{
+    Term *term = rule->l;
+    bool wasvar = false;
+    do{
+        if(wasvar && term->type == T_VAR){
+            printf("Rules must not contain sequences of variables\n");
+            printRule(rule);
+            return false;
+        }
+        wasvar = term->type == T_VAR;
+    }while((term = term->next) != NULL);
+
+    term = rule->r;
+    wasvar = false;
+    do{
+        if(wasvar && term->type == T_VAR){
+            printf("Rules must not contain sequences of variables\n");
+            printRule(rule);
+            return false;
+        }
+        wasvar = term->type == T_VAR;
+    }while((term = term->next) != NULL);
+    return true;
+}
+
 Rule *freeRule
 (Rule *rule)
 {
@@ -247,7 +274,10 @@ Rule *parseRule
         pos++;
         pos = strpbrk(pos, "<-$_");
     }
-
+    if(!validRule(rule)){
+        freeRule(rule);
+        return NULL;
+    }
     if(doubleArrow){
         rule = appendRule(rule, reverseRule(rule));
     }
