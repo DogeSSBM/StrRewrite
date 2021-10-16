@@ -1,10 +1,10 @@
 #include "Includes.h"
 
-State applyRewrites
-(RuleSet *rs, char *str)
-{
-    State
-}
+// State applyRewrites
+// (RuleSet *rs, char *str)
+// {
+//     State
+// }
 
 int main
 (int argc, char **argv)
