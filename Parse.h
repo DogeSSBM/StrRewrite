@@ -30,11 +30,11 @@ bool isDelim
 bool isDupeRule
 (Rule *rule1, Rule *rule2)
 {
+    if(rule1 == NULL || rule2 == NULL || rule1->text == NULL || rule1->text == NULL)
     if(
-        rule1 == rule2 || rule1 == NULL || rule2 == NULL ||
-        rule1->text == NULL || rule1->text == NULL
+        rule1 == rule2
     )
-        return false;
+        return true;
     return strcmp(rule1->text, rule2->text) != 0;
 }
 
@@ -43,7 +43,6 @@ uint getLen
 {
     if(*pos != '@' && *pos != '_' && *pos != '$'){
         printf("Dont know how to parse len of string beginning at %s\n", pos);
-        err();
         exit(-1);
     }
     uint len = 0;

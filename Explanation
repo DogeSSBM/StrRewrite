@@ -1,0 +1,20 @@
+Axioms -
+    0 is the only number
+    S(x) is the successor function
+    1 = S(0)
+    2 = S(S(0))
+    3 = S(S(S(0)))
+    etc...
+
+1.  A + 0       -> A
+2.  A + S(B)    -> S(A + B)
+3.  A + B       <-> B + A
+
+Prove: 1 + 1 = 2
+or if we encode the numbers as 0s and successor functions...
+Prove:
+   S(0) + S(0) = S(S(0))
+-> S(S(0) + 0)      via 2.
+-> S(S(0))          via 1.
+== 2
+therefore 1 + 1 = 2

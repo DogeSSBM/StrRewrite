@@ -35,8 +35,9 @@ typedef int64_t             i64;
 struct Term_s;
 struct Rule_s;
 struct RuleSet_s;
-struct Node_s;
-struct Rewrite_s;
+// struct Match_s;
+// struct Node_s;
+// struct Rewrite_s;
 
 typedef enum{T_STR, T_VAR}TermType;
 
@@ -60,24 +61,29 @@ typedef struct RuleSet_s{
     struct RuleSet_s *next;
 }RuleSet;
 
-typedef struct Rewrite_s{
-    struct Node_s *result;
-    Term *matches;
-    Rule *rule;
-    struct Rewrite_s *next;
-}Rewrite;
+// typedef struct Match_s{
+//     char *
+//     Rule *rule;
+// }Match;
 
-typedef struct Node_s{
-    char *str;
-    Rewrite *rewrites;
-}Node;
-
-typedef struct Strlist_s{
-    char *str;
-    struct Strlist_s * next;
-}Strlist;
-
-typedef struct State_s{
-    Strlist *flat;
-    Node *start;
-}State;
+// typedef struct Rewrite_s{
+//     struct Node_s *result;
+//     Term *matches;
+//     Rule *rule;
+//     struct Rewrite_s *next;
+// }Rewrite;
+//
+// typedef struct Node_s{
+//     char *str;
+//     Rewrite *rewrites;
+// }Node;
+//
+// typedef struct Strlist_s{
+//     char *str;
+//     struct Strlist_s * next;
+// }Strlist;
+//
+// typedef struct State_s{
+//     Strlist *flat;
+//     Node *start;
+// }State;

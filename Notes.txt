@@ -1,3 +1,33 @@
+possible temporary hack:
+variables will not match terms that contain an L string term
+this would prevent nonsense such as this -
+
+rule:
+  _H$(_A$)_T->_H_A_T
+str:
+  "a(1)(2)a"
+rewrites:
+  -> a(1)2a
+      _H: a(1)
+      $:  (
+      _A: 2
+      $:  )
+      _T: a
+  -> a1(2)a
+      _H: a
+      $:  (
+      _A: 1
+      $:  )
+      _T: (2)a
+  -> a1)(2a
+      _H: a
+      $:  (
+      _A: 1)(2
+      $:  )
+      _T: a
+
+
+
 A+s(B)<->s(A+B)
 A+0->A
 
