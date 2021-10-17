@@ -22,7 +22,7 @@ bool
 ruleSameLterms
 (Rule *rule1, Rule *rule2)
 {
-
+    return true;
 }
 
 bool
@@ -42,7 +42,7 @@ matchExistsInList
             exit(-1);
         }
 
-        
+
 
         prev = list;
         list = list->next;
@@ -50,13 +50,15 @@ matchExistsInList
     return false;
 }
 
-// Returns a list of all possible ways a rule can match a string
+// Returns a list of all possible ways a rule matches a string
 Rule *
 matchRuleAll
 (char *str, Rule *rule)
 {
     if(checkIfEmptyMatch(str, rule))
         return NULL;
+
+
 
     return rule;
 }

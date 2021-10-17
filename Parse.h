@@ -65,13 +65,20 @@ char *getEndOfRuleSet
     return end;
 }
 
-void printTerm
+void printTermList
 (Term *term)
 {
     while(term!=NULL){
         printf("%c%s", term->type==T_STR?'$':'_', term->type==T_STR?term->text:term->name);
         term = term->next;
     }
+}
+
+void printTermListLn
+(Term *term)
+{
+    printTermList(term);
+    putchar('\n');
 }
 
 Term *appendTerm
@@ -149,36 +156,58 @@ void printRule
 (Rule *rule)
 {
     printf("\t");
-    printTerm(rule->l);
+    printTermList(rule->l);
     printf("->");
-    printTerm(rule->r);
+    printTermList(rule->r);
     printf("\n");
+}
+
+bool validTermSeq
+(Term *terms)
+{
+    if(terms == NULL){
+        printf("NULL term sequence is not valid\n");
+        exit(-1);
+    }
+    if(terms->next == NULL)
+        return true;
+    Term *start = terms;
+    TermType prev = terms->type;
+    terms = terms->next;
+    uint i = 1;
+    while(terms != NULL){
+        if(terms->type == T_VAR && prev == terms->type){
+            printf("Error\n");
+            printf("Term %u and %u of in rule: ", i, i+1);
+            printTermList(start);
+            printf("Rules must not contain sequences of variables\n"
+            );
+            exit(-1);
+        }
+        i++;
+    }
+    return true;
 }
 
 bool validRule
 (Rule *rule)
 {
     Term *term = rule->l;
+    if(term == NULL){
+        printf("Rules must contain at least 1 Lterm");
+        exit(-1);
+    }
+
     bool wasvar = false;
     do{
         if(wasvar && term->type == T_VAR){
-            printf("Rules must not contain sequences of variables\n");
+            printf("Rules must not contain sequences of Lterm variables\n");
             printRule(rule);
             return false;
         }
         wasvar = term->type == T_VAR;
     }while((term = term->next) != NULL);
 
-    term = rule->r;
-    wasvar = false;
-    do{
-        if(wasvar && term->type == T_VAR){
-            printf("Rules must not contain sequences of variables\n");
-            printRule(rule);
-            return false;
-        }
-        wasvar = term->type == T_VAR;
-    }while((term = term->next) != NULL);
     return true;
 }
 
@@ -195,32 +224,27 @@ Rule *freeRule
     return next;
 }
 
-Rule *appendRule
-(Rule *list, Rule *rule)
-{
-    if(list == NULL)
-        return rule;
-    Rule *current = list;
-    while(current->next != NULL){
-        // if(isDupeRule(current, rule)){
-        //     rule = freeRule(rule);
-        //     return list;
-        // }
-        current = current->next;
-    }
-    current->next = rule;
-    return list;
-}
-
-Rule *currentRule
+Rule *getLastRule
 (Rule *list)
 {
     if(list == NULL){
         printf("Cannot get current Rule from NULL list\n");
         exit(-1);
     }
+
     while(list->next != NULL)
         list = list->next;
+
+    return list;
+}
+
+Rule *appendRule
+(Rule *list, Rule *rule)
+{
+    if(list == NULL)
+        return rule;
+
+    getLastRule(list)->next = rule;
     return list;
 }
 
@@ -229,35 +253,43 @@ Rule *reverseRule
 {
     if(rule == NULL)
         return NULL;
+
     Rule *rev = calloc(1, sizeof(Rule));
     Term *term = rule->r;
     while(term != NULL){
         rev->l = appendTerm(rev->l, dupTerm(term));
         term = term->next;
     }
+
     term = rule->l;
     while(term != NULL){
         rev->r = appendTerm(rev->r, dupTerm(term));
         term = term->next;
     }
+
     return rev;
 }
 
 Rule *parseRule
 (char *pos)
 {
+    // static uint count = 0;
+    // printf("Parsing rule %u\n", count++);
     if(*pos!='$' && *pos!='_'){
         printf("no $/_ ? %s", pos);
         exit(-1);
     }
+
     char *end = strchr(pos, '\n');
     char *arrow = strstr(pos, "->");
+    const uint textlen = end-pos;
     bool doubleArrow = *(arrow-1) == '<';
     arrow-=doubleArrow;
+
     Rule *rule = calloc(1, sizeof(Rule));
-    const uint textlen = end-pos;
     rule->text = calloc(textlen+1, 1);
     memcpy(rule->text, pos, textlen);
+
     Term *term = NULL;
     while(pos<arrow){
         term = parseTerm(pos);
@@ -273,13 +305,19 @@ Rule *parseRule
         pos++;
         pos = strpbrk(pos, "<-$_");
     }
+
+    // if(!validTermSeq(rule->l)){
+    //     freeRule(rule);
+    //     return NULL;
+    // }
     if(!validRule(rule)){
+        exit(-1);
         freeRule(rule);
         return NULL;
     }
-    if(doubleArrow){
-        rule = appendRule(rule, reverseRule(rule));
-    }
+
+    if(doubleArrow)
+        return appendRule(rule, reverseRule(rule));
 
     return rule;
 }
@@ -290,10 +328,12 @@ void printRuleSet
     while(rs != NULL){
         printf("RuleSet \"@%s\" -\n", rs->name);
         Rule *rule = rs->rules;
+
         while(rule != NULL){
             printRule(rule);
             rule = rule->next;
         }
+
         rs = rs->next;
         printf("\n");
     }
@@ -304,9 +344,12 @@ RuleSet *appendRuleSet
 {
     if(list == NULL)
         return ruleset;
+
     RuleSet *current = list;
+
     while(current->next != NULL)
         current = current->next;
+
     current->next = ruleset;
     return list;
 }
@@ -318,8 +361,10 @@ RuleSet *currentRuleSet
         printf("Cannot get current RuleSet from NULL list\n");
         exit(-1);
     }
+
     while(list->next != NULL)
         list = list->next;
+
     return list;
 }
 
@@ -330,23 +375,24 @@ RuleSet *parseRuleSet
         printf("no @? %s\n", pos);
         exit(-1);
     }
+
     const uint len = getLen(pos);
     RuleSet *rs = calloc(1, sizeof(RuleSet));
     rs->name = calloc(len+1, 1);
     pos++;
     char *end = getEndOfRuleSet(pos);
     memcpy(rs->name, pos, len);
-    // printf("Parsing ruleset \"@%s\"\n", rs->name);
     Rule *rule = NULL;
+
     while(pos != NULL && pos<end){
-        // printf("\t%2u:\n", count++);
         pos = strchr(pos, '\n');
         pos = strpbrk(pos, "$_");
         if(pos == NULL || pos > end)
             return rs;
         rule = parseRule(pos);
         rs->rules = appendRule(rs->rules, rule);
-    }//while(rule!=NULL);
+    }
+
     return rs;
 }
 
