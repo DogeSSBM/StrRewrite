@@ -69,7 +69,7 @@ void printTermList
 (Term *term)
 {
     while(term!=NULL){
-        printf("%c%s", term->type==T_STR?'$':'_', term->type==T_STR?term->text:term->name);
+        printf("%c%s", term->type==T_STR?'$':'_', term->type==T_STR?term->value:term->name);
         term = term->next;
     }
 }
@@ -115,13 +115,16 @@ Term *parseTerm
         }
         return NULL;
     }
+
     Term *term = calloc(1, sizeof(Term));
     term->type = *pos=='$'?T_STR:T_VAR;
     const uint len = getLen(pos);
     pos++;
-    char **label = term->type==T_STR ? &(term->text) : &(term->name);
+
+    char **label = term->type==T_STR ? &(term->value) : &(term->name);
     *label = calloc(len+1, 1);
     memcpy(*label, pos, len);
+
     return term;
 }
 
@@ -132,9 +135,9 @@ Term *dupTerm
         return NULL;
     Term *dup = calloc(1, sizeof(Term));
     dup->type = term->type;
-    char **label = term->type==T_STR ? &(term->text) : &(term->name);
+    char **label = term->type==T_STR ? &(term->value) : &(term->name);
     const uint len = strlen(*label);
-    char **duplabel = dup->type==T_STR ? &(dup->text) : &(dup->name);
+    char **duplabel = dup->type==T_STR ? &(dup->value) : &(dup->name);
     *duplabel = calloc(len+1, 1);
     memcpy(*duplabel, *label, len);
     return dup;
@@ -146,7 +149,7 @@ Term *freeTerm
     if(term==NULL)
         return NULL;
     free(term->name);
-    free(term->text);
+    free(term->value);
     Term *next = term->next;
     free(term);
     return next;
@@ -198,14 +201,16 @@ bool validRule
         exit(-1);
     }
 
-    bool wasvar = false;
+    int varcount = 0;
+    // char *varpos = NULL;
     do{
-        if(wasvar && term->type == T_VAR){
-            printf("Rules must not contain sequences of Lterm variables\n");
+        if((varcount += term->type == T_VAR ? 1 : -1*varcount>0)>2){
+        //if(wasvar & (wasvar = term->type == T_VAR)){
+            printf("Lterm variables must be seperated by 1 or more Lterm string(s)\n");
             printRule(rule);
             return false;
         }
-        wasvar = term->type == T_VAR;
+        // wasvar = term->type == T_VAR;
     }while((term = term->next) != NULL);
 
     return true;
@@ -246,6 +251,28 @@ Rule *appendRule
 
     getLastRule(list)->next = rule;
     return list;
+}
+
+Rule *dupRule
+(Rule *rule)
+{
+    if(rule == NULL)
+        return NULL;
+
+    Rule *dup = calloc(1, sizeof(Rule));
+    Term *term = rule->r;
+    while(term != NULL){
+        dup->r = appendTerm(dup->r, dupTerm(term));
+        term = term->next;
+    }
+
+    term = rule->l;
+    while(term != NULL){
+        dup->l = appendTerm(dup->l, dupTerm(term));
+        term = term->next;
+    }
+
+    return dup;
 }
 
 Rule *reverseRule
@@ -310,11 +337,8 @@ Rule *parseRule
     //     freeRule(rule);
     //     return NULL;
     // }
-    if(!validRule(rule)){
+    if(!validRule(rule))
         exit(-1);
-        freeRule(rule);
-        return NULL;
-    }
 
     if(doubleArrow)
         return appendRule(rule, reverseRule(rule));

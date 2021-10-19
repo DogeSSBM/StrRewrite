@@ -11,54 +11,25 @@ bool checkIfEmptyMatch
     return ret;
 }
 
-Rule *
-matchRule
+Rule* matchRule
 (char *str, Rule *rule)
 {
-    return rule;
-}
+    Rule *ret = dupRule(rule);
+    for(Term *l = ret->l; l != NULL; l = l->next){
 
-bool
-ruleSameLterms
-(Rule *rule1, Rule *rule2)
-{
-    return true;
-}
-
-bool
-matchExistsInList
-(Rule *list, Rule *match)
-{
-    if(match == NULL){
-        printf("Cannot check if NULL match exists in match list\n");
-        exit(-1);
     }
-    Rule *prev = NULL;
-    while(list != NULL){
-        if(prev != NULL && !ruleSameLterms(prev, list)){
-            printf("Rules in match list have different L terms\n");
-            printRule(prev);
-            printRule(list);
-            exit(-1);
-        }
-
-
-
-        prev = list;
-        list = list->next;
-    }
-    return false;
+    
+    return freeRule(ret);
 }
 
 // Returns a list of all possible ways a rule matches a string
-Rule *
-matchRuleAll
+Rule* matchRuleAll
 (char *str, Rule *rule)
 {
     if(checkIfEmptyMatch(str, rule))
         return NULL;
 
-
+    // for()
 
     return rule;
 }

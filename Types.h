@@ -44,7 +44,7 @@ typedef enum{T_STR, T_VAR}TermType;
 typedef struct Term_s{
     TermType type;
     char *name; // NULL if T_STR.
-    char *text; // text of string if T_STR. text of T_VAR if bound. NULL if free.
+    char *value; // text of string if T_STR. text of T_VAR if bound. NULL if free.
     struct Term_s *next;
 }Term;
 
@@ -60,30 +60,3 @@ typedef struct RuleSet_s{
     Rule *rules;
     struct RuleSet_s *next;
 }RuleSet;
-
-// typedef struct Match_s{
-//     char *
-//     Rule *rule;
-// }Match;
-
-// typedef struct Rewrite_s{
-//     struct Node_s *result;
-//     Term *matches;
-//     Rule *rule;
-//     struct Rewrite_s *next;
-// }Rewrite;
-//
-// typedef struct Node_s{
-//     char *str;
-//     Rewrite *rewrites;
-// }Node;
-//
-// typedef struct Strlist_s{
-//     char *str;
-//     struct Strlist_s * next;
-// }Strlist;
-//
-// typedef struct State_s{
-//     Strlist *flat;
-//     Node *start;
-// }State;
