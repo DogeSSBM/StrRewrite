@@ -65,6 +65,15 @@ char *getEndOfRuleSet
     return end;
 }
 
+void printTermListNoDelim
+(Term *term)
+{
+    while(term!=NULL){
+        puts(term->type==T_STR?term->value:term->name);
+        term = term->next;
+    }
+}
+
 void printTermList
 (Term *term)
 {

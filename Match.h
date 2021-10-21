@@ -11,15 +11,39 @@ bool checkIfEmptyMatch
     return ret;
 }
 
+// _H$DD(_A$dee_B$)_T
+
+// head DD(h dee t) tail
+
+uint numStrsTermList
+(Term *term)
+{
+    uint ret = 0;
+    while(term != NULL){
+        ret += term->type == T_STR;
+        term = term->next;
+    }
+    return ret;
+}
+
+Term* matchStrsTermList
+(const char *str, Term *term)
+{
+    const uint strTerms = numStrsTermList(term);
+    char *pos = str;
+    for(Term *l = term; l != NULL; l = l->next){
+        if(l->type == T_VAR)
+            continue;
+        if(pos = strstr(pos, l->text))
+            return NULL;
+        pos+=strlen(l->text);
+}
+
 Rule* matchRule
 (char *str, Rule *rule)
 {
-    Rule *ret = dupRule(rule);
-    for(Term *l = ret->l; l != NULL; l = l->next){
 
-    }
-    
-    return freeRule(ret);
+    return rule;
 }
 
 // Returns a list of all possible ways a rule matches a string

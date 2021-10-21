@@ -43,9 +43,9 @@ typedef enum{T_STR, T_VAR}TermType;
 
 typedef struct Term_s{
     TermType type;
-    char *name; // NULL if T_STR.
-    char *value; // text of string if T_STR. text of T_VAR if bound. NULL if free.
-    char *match;
+    char *name;     // NULL if T_STR.
+    char *value;    // text of string if T_STR. text of T_VAR if bound. NULL if free.
+    char *match;    // position of term match in string;
     struct Term_s *next;
 }Term;
 
