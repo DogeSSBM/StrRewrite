@@ -26,17 +26,55 @@ uint numStrsTermList
     return ret;
 }
 
-Term* matchStrsTermList
-(const char *str, Term *term)
+void printStrsTermList
+(Term *list)
 {
-    const uint strTerms = numStrsTermList(term);
+    Term *term = list;
+    while(term != NULL){
+        if(term->type == T_STR && term->match == NULL)
+            return;
+        term = term->next;
+    }
+    term = list;
+    while(term != NULL){
+        if(term->type == T_STR && term->match != NULL)
+            printf("%s at %s\n", term->value, term->match);
+        term = term->next;
+    }
+    putchar('\n');
+}
+
+Term* clearStrsTermList
+(Term *list)
+{
+    Term *term = list;
+    while(term != NULL){
+        if(term->type == T_STR)
+            term->match = NULL;
+        term = term->next;
+    }
+    return list;
+}
+
+Term* matchStrsTermList
+(char *str, Term *list)
+{
+    // const uint strTerms = numStrsTermList(list);
     char *pos = str;
-    for(Term *l = term; l != NULL; l = l->next){
+    for(Term *l = list; l != NULL; l = l->next){
         if(l->type == T_VAR)
             continue;
-        if(pos = strstr(pos, l->text))
-            return NULL;
-        pos+=strlen(l->text);
+        char *matchpos = strstr(pos, l->value);
+        if(matchpos != NULL){
+            pos = matchpos;
+            l->match = pos;
+        }else{
+            return clearStrsTermList(list);
+            //printf("Could not find \"%s\" in \"%s\"\n", l->value, pos);
+        }
+        pos += l->value == NULL ? 0 : strlen(l->value);
+    }
+    return list;
 }
 
 Rule* matchRule

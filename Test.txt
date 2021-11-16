@@ -3,6 +3,6 @@ _A->_A
 $poof_A->_A$
 $abcd->$abcdee
 $sdup(_A$)->_A_A
-_H$dup(_A)_T->_H_A_A_T
 _H$bigD(_A$dee_B$)_T->_H_A$DEE_B_T
+_H$dup(_A$)_T->_H_A_A_T
 _H$DD(_A$dee_B$)_T->_H_A$dup(bigD(dee))_B_T

@@ -210,17 +210,19 @@ bool validRule
         exit(-1);
     }
 
-    int varcount = 0;
-    // char *varpos = NULL;
-    do{
-        if((varcount += term->type == T_VAR ? 1 : -1*varcount>0)>2){
-        //if(wasvar & (wasvar = term->type == T_VAR)){
+    bool wasvar = term->type == T_VAR;
+    term = term->next;
+
+    while(term != NULL){
+        if(wasvar && term->type == T_VAR){
             printf("Lterm variables must be seperated by 1 or more Lterm string(s)\n");
+            printf("%s\n", term->name);
             printRule(rule);
             return false;
         }
-        // wasvar = term->type == T_VAR;
-    }while((term = term->next) != NULL);
+        wasvar = term->type == T_VAR;
+        term = term->next;
+    }
 
     return true;
 }

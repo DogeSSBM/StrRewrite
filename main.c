@@ -9,7 +9,7 @@ int main
     RuleSet *rs = parseAll(source);
     printRuleSet(rs);
 
-    const char *testStr[STRNUM] = {
+    char *testStr[STRNUM] = {
         "abcd",
         "(abcdef)",
         "sdup(xyz)",
@@ -22,14 +22,16 @@ int main
     printf("--------------------------------\n\n");
 
     Rule *rule = rs->rules;
-    do{
+    while(rule != NULL){
         printf("Rule ");
         printRule(rule);
         for(uint i = 0; i < STRNUM; i++){
-
+            rule->l = matchStrsTermList(testStr[i], rule->l);
+            printStrsTermList(rule->l);
+            rule->l = clearStrsTermList(rule->l);
         }
-
-    }while((rule = rule->next) != NULL);
+        rule = rule->next;
+    }
 
     free(source);
     freeAll(rs);
